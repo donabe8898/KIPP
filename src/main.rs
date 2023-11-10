@@ -9,6 +9,22 @@ use tokio_postgres::{tls::TlsConnect, Client, Connection, Error, NoTls};
 // Poise用
 // strct.rsへ移動
 
+/*
+    TODO: 検索・表示用コマンド実装
+        - 全プロジェクト（テーブル）
+        - プロジェクト内の全チケット（レコード）
+            - 全レコード
+            - 完了済みを除くレコード
+            - 
+
+    TODO: 挿入コマンド実装
+        - null許容の値に注意する
+
+    TODO: 完了、削除機能実装
+        - テーブルまるごと削除しない限り、削除されない
+
+*/
+
 struct Data {}
 
 #[tokio::main]

@@ -30,7 +30,6 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
     for row in rows {
         let id: i32 = row.get(0);
         let name: &str = row.get(1);
-        println!("id: {}, name: {}", id, name);
         response += &format!("id: {}, name: {}\n", id, name);
     }
     let _ = ctx.say(response).await;
