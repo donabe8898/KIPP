@@ -1,3 +1,5 @@
+use std::os::unix::thread;
+
 use poise::serenity_prelude::{self as serenity, ChannelId, Error};
 
 use tokio::*;
@@ -15,7 +17,7 @@ pub async fn getforum(ctx: Context<'_>) -> Result<(), Error> {
 
     /* フォーラム取得 */
     // TODO: Debug
-    let forum_channel_id = ChannelId(1201023200998469662);
+    let forum_channel_id = ChannelId(1201022878880120935);
 
     /*
     スレッド一覧取得
@@ -28,12 +30,28 @@ pub async fn getforum(ctx: Context<'_>) -> Result<(), Error> {
         .await
         .map_err(|_| serenity::Error::Other("Failed to fetch messages".into()))?;
 
+    println!("{:?}", threads);
+
     /* スレッドのIDを取得 */
     for thread_id in threads {
         response.push_str(&format!("Thread ID: {}\n", thread_id.id));
+        println!("{}", &thread_id.id);
     }
 
     /* 返信する */
-    let _ = ctx.say(&response).await;
+
+    // let _ = ctx.say(&response).await;
+    // HACK: デバッグ
+    let _ = ctx.say("おけ").await;
+    Ok(())
+}
+
+#[poise::command(slash_command)]
+// デバッグ用：チャンネルIDの取得
+pub async fn getchannelid(ctx: Context<'_>) -> Result<(), Error> {
+    let forum_channel_id = ChannelId(1201022878880120935);
+
+    let resp = ctx.channel_id();
+    let _ = ctx.say(format!("{:?}", resp)).await;
     Ok(())
 }

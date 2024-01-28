@@ -1,4 +1,4 @@
-mod getter;
+mod disp;
 mod imp;
 use poise::serenity_prelude as serenity;
 
@@ -10,11 +10,11 @@ use tokio;
 // strct.rsへ移動
 
 /*
-
     独自エラー型の実装が必須
         - postgresのエラー
         - serenityのエラー
         - std::Error
+    めんどくさいことになりそうだったので, tokio_postgresのエラーをserenityのエラーに置き換えて処理
 
 */
 
@@ -34,7 +34,7 @@ async fn main() -> Result<(), Error> {
     let token = env::var("TOKEN").expect("missing get token");
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![imp::test(), getter::getforum()],
+            commands: vec![imp::test(), disp::getforum(), disp::getchannelid()],
             ..Default::default()
         })
         .token(token)

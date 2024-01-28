@@ -52,7 +52,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
             return Err(serenity::Error::Other("Query error".into()));
         }
     };
-    // 表示とdiscord返信
+    /* 表示とdiscord返信 */
     for row in rows {
         let id: i32 = row.get(0);
         let name: &str = row.get(1);
