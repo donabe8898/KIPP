@@ -1,31 +1,30 @@
+mod getter;
 mod imp;
+use poise::serenity_prelude as serenity;
 
-use poise::{framework, serenity_prelude as serenity};
-use serde::{Deserialize, Serialize};
 use std::env;
 use tokio;
-use tokio_postgres::{tls::TlsConnect, Client, Connection, Error, NoTls};
+// use tokio_postgres::{tls::TlsConnect, Client, Connection, Error, NoTls};
 
 // Poise用
 // strct.rsへ移動
 
 /*
-    TODO: 検索・表示用コマンド実装
-        - 全プロジェクト（テーブル）
-        - プロジェクト内の全チケット（レコード）
-            - 全レコード
-            - 完了済みを除くレコード
-            - 
 
-    TODO: 挿入コマンド実装
-        - null許容の値に注意する
-
-    TODO: 完了、削除機能実装
-        - テーブルまるごと削除しない限り、削除されない
+    独自エラー型の実装が必須
+        - postgresのエラー
+        - serenityのエラー
+        - std::Error
 
 */
 
-struct Data {}
+/* 他のモジュールでも使いまわす */
+pub struct Data {}
+/* エラーハンドル用
+    他のモジュールでも使いまわします
+*/
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -35,7 +34,7 @@ async fn main() -> Result<(), Error> {
     let token = env::var("TOKEN").expect("missing get token");
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![imp::test()],
+            commands: vec![imp::test(), getter::getforum()],
             ..Default::default()
         })
         .token(token)
@@ -45,7 +44,7 @@ async fn main() -> Result<(), Error> {
                 poise::builtins::register_globally(ctx, &framework.options().commands)
                     .await
                     .unwrap();
-                Ok(imp::Data {})
+                Ok(Data {})
             })
         });
     framework.run().await.unwrap();

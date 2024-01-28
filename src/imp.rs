@@ -1,23 +1,43 @@
-use poise::serenity_prelude::{self as serenity, client, FutureExt};
+/*
+データベース関係の実装
+エラーがserenityと別なので注意する.
+
+Copyright © 2024 donabe8898. All rights reserved.
+*/
+
+use poise::serenity_prelude::{self as serenity, client, Channel, ChannelId, FutureExt};
 use serde::{Deserialize, Serialize};
 use tokio;
 use tokio_postgres::{
     tls::{NoTlsStream, TlsConnect},
     Client, Connection, Error, NoTls, Row, Socket,
 };
-// type Error = Box<dyn std::error::Error + Send + Sync>;
-pub struct Data {}
-type Context<'a> = poise::Context<'a, Data, Error>;
+
+use super::*;
+type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
+
+/* NOTE: エラー型はすべてserenity::Errorへ統一してしまう. */
 
 // DB test command
 #[poise::command(slash_command)]
-pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     /* 返答用string */
     let mut response = String::new();
-    /* 接続実行 */
-    let (client, conn) = db_conn().await?;
 
-    // 接続タスク実行
+    /*
+    DBへの接続を試行
+
+    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
+    */
+    let (client, conn) = match db_conn().await {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("Connected error: {}", e);
+            return Err(serenity::Error::Other("Database connection error".into()));
+        }
+    };
+
+    /* 接続タスク実行 */
     tokio::spawn(async move {
         if let Err(e) = conn.await {
             eprintln!("connection err: {}", e);
@@ -25,7 +45,13 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
     });
 
     /* DBテーブル取得 */
-    let rows = client.query("select * from users", &[]).await?;
+    let rows = match client.query("select * from testdb", &[]).await {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("query error: {}", e);
+            return Err(serenity::Error::Other("Query error".into()));
+        }
+    };
     // 表示とdiscord返信
     for row in rows {
         let id: i32 = row.get(0);
@@ -36,6 +62,11 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/*
+チャンネル内のフォーラムを全取得
+フォーラムidは15らしい
+*/
+
 /* データベース接続 */
 pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Error> {
     let (client, conn) = tokio_postgres::Config::new()
@@ -43,7 +74,7 @@ pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Erro
         .password("password")
         .host("localhost")
         .port(5432)
-        .dbname("testdb")
+        .dbname("postgres")
         .connect(tokio_postgres::NoTls)
         .await?;
 
