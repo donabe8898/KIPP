@@ -1,57 +1,70 @@
+use poise::serenity_prelude::model::channel;
+use poise::serenity_prelude::{self as serenity, ChannelId, Error, ForumTagId, FutureExt, Guild};
+use std::any::Any;
 use std::os::unix::thread;
-
-use poise::serenity_prelude::{self as serenity, ChannelId, Error};
-
+use std::sync::Arc;
 use tokio::*;
+use uuid::{self, Uuid};
+
+use crate::imp;
 
 // pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
 pub struct Data {}
 
-// フォーラムIDから全スレッドのIDを取得
-#[poise::command(slash_command)]
-// フォーラムIDから全スレッドのIDを取得
-pub async fn getforum(ctx: Context<'_>) -> Result<(), Error> {
-    /* 返信 */
-    let mut response = String::new();
+/*
+* - TODO: showall 全てのチャンネルで何件のタスクが登録されているか表示するコマンド
+* - TODO: show チャンネルに紐付けられたタスクの表示
+*
+*/
 
-    /* フォーラム取得 */
-    // TODO: Debug
-    let forum_channel_id = ChannelId(1201022878880120935);
+#[poise::command(slash_command)]
+// showall 全てのチャンネルで何件のタスクが登録されているか表示するコマンド
+pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
+    // コマンドを実行したチャンネルID
+    let this_channel_id = ctx.channel_id().to_string();
 
     /*
-    スレッド一覧取得
-    discordではスレッドから直接IDを取得できないので, スレッドの最初のメッセージをスレッドIDと見なして処理する必要がある
+    DBへの接続を試行
+    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
     */
-    let cache_and_http = ctx.serenity_context();
+    let (client, conn) = match imp::db_conn().await {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("Connected error: {}", e);
+            return Err(serenity::Error::Other("Database connection error".into()));
+        }
+    };
 
-    let threads = forum_channel_id
-        .messages(&cache_and_http, |m| m)
-        .await
-        .map_err(|_| serenity::Error::Other("Failed to fetch messages".into()))?;
+    /* 接続タスク実行 */
+    tokio::spawn(async move {
+        if let Err(e) = conn.await {
+            eprintln!("connection err: {}", e);
+        }
+    });
 
-    println!("{:?}", threads);
+    // テーブル取得
+    let q: String = format!("select * from \"{}\"", this_channel_id);
+    // let q = format!("select * from testdb");
+    let rows = match client.query(&q, &[]).await {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("query error: {}", e);
+            return Err(serenity::Error::Other("Query error".into()));
+        }
+    };
 
-    /* スレッドのIDを取得 */
-    for thread_id in threads {
-        response.push_str(&format!("Thread ID: {}\n", thread_id.id));
-        println!("{}", &thread_id.id);
+    // row分解
+    let mut response = String::new();
+    for row in rows {
+        let id: String = row.get::<&str, uuid::Uuid>("id").to_string();
+        let tast_name: String = row.get("tast_name");
+        let users: String = row.get("users");
+
+        response += &format!("id: {:?}, tast_name: {}, users: {}\n", id, tast_name, users);
     }
 
-    /* 返信する */
-
-    // let _ = ctx.say(&response).await;
-    // HACK: デバッグ
-    let _ = ctx.say("おけ").await;
-    Ok(())
-}
-
-#[poise::command(slash_command)]
-// デバッグ用：チャンネルIDの取得
-pub async fn getchannelid(ctx: Context<'_>) -> Result<(), Error> {
-    let forum_channel_id = ChannelId(1201022878880120935);
-
-    let resp = ctx.channel_id();
-    let _ = ctx.say(format!("{:?}", resp)).await;
+    // println!("{}", response);
+    let _ = ctx.reply(response).await;
     Ok(())
 }

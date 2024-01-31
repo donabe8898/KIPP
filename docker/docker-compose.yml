@@ -13,3 +13,8 @@ services:
     
 volumes:
     pgdata:
+
+# postgresql でuuidを使う場合、拡張機能をインストールする
+# $ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+# sudo docker-compose exec postgres bash

@@ -24,6 +24,9 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     /* 返答用string */
     let mut response = String::new();
 
+    /* コマンドを実行したチャンネルのIDを取得 */
+    let channel_id: String = ctx.channel_id().to_string();
+
     /*
     DBへの接続を試行
 
@@ -45,6 +48,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     });
 
     /* DBテーブル取得 */
+
     let rows = match client.query("select * from testdb", &[]).await {
         Ok(result) => result,
         Err(e) => {
