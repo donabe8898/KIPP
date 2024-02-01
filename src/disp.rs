@@ -1,3 +1,5 @@
+//! 表示関係の実装
+
 use poise::serenity_prelude::model::channel;
 use poise::serenity_prelude::{
     self as serenity, ChannelId, CreateEmbed, Embed, EmbedAuthor, Error, ForumTagId, FutureExt,
@@ -15,6 +17,8 @@ use uuid::{self, Uuid};
 use crate::imp;
 
 // pub type Error = Box<dyn std::error::Error + Send + Sync>;
+
+/// 返信に使うコンテキスト
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
 pub struct Data {}
 
@@ -24,8 +28,8 @@ pub struct Data {}
 *
 */
 
+/// 全タスクの状況をチャンネルごとに一覧形式で表示します。
 #[poise::command(slash_command)]
-// showall 全てのチャンネルで何件のタスクが登録されているか表示するコマンド
 pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
     // コマンドを実行したチャンネルID
     let this_channel_id = ctx.channel_id().to_string();
@@ -79,8 +83,9 @@ pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// Embedのテスト用コマンド
 #[poise::command(slash_command)]
-// Embedのテスト
+/// Embedのテスト用コマンド
 pub async fn embedtest(ctx: Context<'_>) -> Result<(), serenity::Error> {
     // コマンドを実行したチャンネルID
     let this_channel_id = ctx.channel_id().to_string();

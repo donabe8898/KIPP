@@ -1,9 +1,8 @@
-/*
-データベース関係の実装
-エラーがserenityと別なので注意する.
+//! データベース関係の実装
+//! エラーがserenityと別なので注意する.
+//! エラーはすべてserenityのものへ統一化
 
-Copyright © 2024 donabe8898. All rights reserved.
-*/
+// Copyright © 2024 donabe8898. All rights reserved.
 
 use poise::serenity_prelude::{self as serenity, client, Channel, ChannelId, FutureExt};
 use serde::{Deserialize, Serialize};
@@ -16,11 +15,10 @@ use tokio_postgres::{
 use super::*;
 type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
-/* NOTE: エラー型はすべてserenity::Errorへ統一してしまう. */
-
-// DB test command
+/// DB test command
 #[poise::command(slash_command)]
 pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
+    //! DB test command
     /* 返答用string */
     let mut response = String::new();
 
@@ -66,12 +64,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     Ok(())
 }
 
-/*
-チャンネル内のフォーラムを全取得
-フォーラムidは15らしい
-*/
-
-/* データベース接続 */
+/// データベースへの接続処理
 pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Error> {
     let (client, conn) = tokio_postgres::Config::new()
         .user("postgres")
