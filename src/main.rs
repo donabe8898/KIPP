@@ -37,7 +37,12 @@ async fn main() -> Result<(), Error> {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![imp::test(), disp::showall(), disp::embedtest()],
+            commands: vec![
+                imp::test(),
+                disp::showall(),
+                disp::showtask(),
+                imp::addtask(),
+            ],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

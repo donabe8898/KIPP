@@ -72,10 +72,10 @@ pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
     let mut response = String::new();
     for row in rows {
         let id: String = row.get::<&str, uuid::Uuid>("id").to_string();
-        let tast_name: String = row.get("tast_name");
-        let users: String = row.get("users");
+        let tast_name: String = row.get("task_name");
+        let users: String = row.get("member");
 
-        response += &format!("id: {:?}, tast_name: {}, users: {}\n", id, tast_name, users);
+        response += &format!("id: {:?}, task_name: {}, users: {}\n", id, tast_name, users);
     }
 
     // println!("{}", response);
@@ -83,10 +83,9 @@ pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Embedのテスト用コマンド
+/// チャンネルに属すタスクを表示
 #[poise::command(slash_command)]
-/// Embedのテスト用コマンド
-pub async fn embedtest(ctx: Context<'_>) -> Result<(), serenity::Error> {
+pub async fn showtask(ctx: Context<'_>) -> Result<(), serenity::Error> {
     // コマンドを実行したチャンネルID
     let this_channel_id = ctx.channel_id().to_string();
 
@@ -131,19 +130,20 @@ pub async fn embedtest(ctx: Context<'_>) -> Result<(), serenity::Error> {
     for row in rows {
         // まずはrowから情報を抜き出す
         let task_id = row.get::<&str, uuid::Uuid>("id").to_string();
-        let task_name: String = row.get("tast_name");
-        let users: String = row.get("users");
+        let task_name: String = row.get("task_name");
+        let member: String = row.get("member");
 
         let embed = CreateEmbed::default()
-            .title(task_id)
-            .description("Embed Description")
+            .title(task_name)
+            .description(format!("タスクID: {}", task_id))
             .color((0, 255, 0))
-            .field(task_name, users, false);
+            .field("担当者", member, false);
 
         embeds.push(embed);
     }
     for embed in embeds {
         let rep = CreateReply::default().content("").embed(embed);
+
         ctx.send(rep).await?;
     }
 
