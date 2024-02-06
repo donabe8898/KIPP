@@ -42,6 +42,7 @@ async fn main() -> Result<(), Error> {
                 disp::showall(),
                 disp::showtask(),
                 imp::addtask(),
+                imp::change(),
             ],
             ..Default::default()
         })

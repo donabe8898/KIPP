@@ -7,6 +7,8 @@ use poise::serenity_prelude::{
 };
 use poise::CreateReply;
 
+use ::serenity::builder::CreateEmbedFooter;
+use serenity::model::Timestamp;
 use serenity::prelude::*;
 use std::any::Any;
 use std::os::unix::thread;
@@ -132,30 +134,31 @@ pub async fn showtask(ctx: Context<'_>) -> Result<(), serenity::Error> {
         let task_id = row.get::<&str, uuid::Uuid>("id").to_string();
         let task_name: String = row.get("task_name");
         let member: String = row.get("member");
+        let status: i16 = row.get("status");
+        let (status, color) = match status {
+            0 => ("完了済み", (0, 0, 0)),
+            1 => ("進行中", (0, 255, 0)),
+            _ => ("その他", (255, 0, 0)),
+        };
 
         let embed = CreateEmbed::default()
             .title(task_name)
             .description(format!("タスクID: {}", task_id))
-            .color((0, 255, 0))
-            .field("担当者", member, false);
+            .color(color)
+            .fields(vec![
+                ("担当者", member, false),
+                ("ステータス", status.to_string(), false),
+            ])
+            .footer(CreateEmbedFooter::new("コマンド"))
+            .timestamp(Timestamp::now());
 
         embeds.push(embed);
     }
     for embed in embeds {
         let rep = CreateReply::default().content("").embed(embed);
 
-        ctx.send(rep).await?;
+        let _ = ctx.send(rep).await?;
     }
-
-    // /* row分解して送信形式にまとめる */
-    // let mut response = String::new();
-    // for row in rows {
-    //     let id: String = row.get::<&str, uuid::Uuid>("id").to_string();
-    //     let tast_name: String = row.get("tast_name");
-    //     let users: String = row.get("users");
-
-    //     response += &format!("id: {:?}, tast_name: {}, users: {}\n", id, tast_name, users);
-    // }
 
     Ok(())
 }

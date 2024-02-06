@@ -4,10 +4,13 @@
 
 // Copyright © 2024 donabe8898. All rights reserved.
 
-use poise::serenity_prelude::*;
 use poise::serenity_prelude::{self as serenity, client, Channel, ChannelId, FutureExt, Mention};
+use poise::{serenity_prelude::*, CreateReply, ReplyHandle};
 use serde::{Deserialize, Serialize};
+use std::any::Any;
+use std::time::Duration; // タイムアウト処理用
 use tokio;
+use tokio::time::timeout;
 use tokio_postgres::{
     tls::{NoTlsStream, TlsConnect},
     Client, Connection, Error, NoTls, Row, Socket,
@@ -16,7 +19,6 @@ use tokio_postgres::{
 use super::*;
 type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
-/// DB test command
 #[poise::command(slash_command)]
 pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     //! DB test command
@@ -42,12 +44,12 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     /* 接続タスク実行 */
     tokio::spawn(async move {
         if let Err(e) = conn.await {
-            eprintln!("connection err: {}", e);
+            eprintln!("connection error: {}", e);
+            eprintln!("コネクションエラー: {}", e);
         }
     });
 
     /* DBテーブル取得 */
-
     let rows = match client.query("select * from testdb", &[]).await {
         Ok(result) => result,
         Err(e) => {
@@ -55,6 +57,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
             return Err(serenity::Error::Other("Query error".into()));
         }
     };
+
     /* 表示とdiscord返信 */
     for row in rows {
         let id: i32 = row.get(0);
@@ -65,6 +68,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
     Ok(())
 }
 
+// TODO: タスクの追加
 /// タスクを1件追加します
 #[poise::command(slash_command)]
 pub async fn addtask(
@@ -98,16 +102,25 @@ pub async fn addtask(
     /*
     タスク登録
     テーブルが無ければ作成
+
+    NOTE: ステータス
+    - 進行中 = 1
+    - 終了 = 0
     */
+
     let tsk_name: String = task_name;
     let member_id: UserId = member.user.id;
+
+    // レコード作成用クエリ文
     let insert = format!(
-        "insert into \"{}\" (id, task_name, member) values (uuid_generate_v4(), \'{}\', \'{}\');",
+        "insert into \"{}\" (id, task_name, member, status) values (uuid_generate_v4(), \'{}\', \'{}\', 1);",
         channel_id, tsk_name, member_id
     );
-    let create = format!("create table \"{}\" (id uuid DEFAULT uuid_generate_v4(), task_name text NOT NULL, member text NOT NULL);",channel_id);
-    println!("{}\n{}", insert, create);
 
+    // テーブル作成用クエリ文
+    let create = format!("create table \"{}\" (id uuid DEFAULT uuid_generate_v4(), task_name text NOT NULL, member text NOT NULL, status smallint DEFAULT 1);",channel_id);
+
+    // クエリ送信
     let _res = match client.query(&insert, &[]).await {
         Ok(_result) => {}
         Err(_e) => {
@@ -125,6 +138,60 @@ pub async fn addtask(
     /* 完了メッセージ */
 
     let _ = ctx.reply("タスクを登録しました").await;
+    Ok(())
+}
+
+// TODO: タスクの完了
+
+/// ボタンテスト→ステータス変更コマンド
+#[poise::command(slash_command)]
+pub async fn change(
+    ctx: Context<'_>,
+    #[description = "タスクID"] task_id: String,
+) -> Result<(), serenity::Error> {
+    // DB処理
+
+    // DB処理
+
+    // ----------Yesボタン----------
+    let mut btn_run = CreateButton::new("running")
+        .emoji('\u{1f697}')
+        .label("進行中")
+        .style(ButtonStyle::Success);
+
+    // ----------Noボタン----------
+    let mut btn_done = CreateButton::new("done")
+        .emoji('\u{2615}')
+        .label("完了")
+        .style(ButtonStyle::Secondary);
+
+    // ----------アクションにボタンを追加----------
+    let mut buttons = CreateActionRow::Buttons(vec![btn_run, btn_done]);
+
+    let rep = CreateReply::default()
+        .content("")
+        .content("ステータスをどれに変更しますか？")
+        .components(vec![buttons]);
+
+    let m = ctx.send(rep).await;
+
+    // ----------タイムアウト処理----------
+    let um = match m {
+        Ok(result) => result,
+        Err(e) => panic!("送信エラー"),
+    };
+
+    let result = timeout(Duration::from_secs(10), um.delete(ctx)).await;
+
+    match result {
+        Ok(_) => {
+            let _ = ctx.reply("変更しました").await;
+        }
+        Err(_) => {
+            let _ = ctx.reply("時間切れ").await;
+        }
+    }
+
     Ok(())
 }
 
