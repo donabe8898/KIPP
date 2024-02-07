@@ -4,11 +4,14 @@
 
 // Copyright © 2024 donabe8898. All rights reserved.
 
-use poise::serenity_prelude::{self as serenity, client, Channel, ChannelId, FutureExt, Mention};
-use poise::{serenity_prelude::*, CreateReply, ReplyHandle};
-use serde::{Deserialize, Serialize};
-use std::any::Any;
+use futures_util::TryFutureExt;
+use poise::reply::ReplyHandle;
+use poise::serenity_prelude::*;
+use poise::*;
+
+use serde::{de::IntoDeserializer, Deserialize, Serialize};
 use std::time::Duration; // タイムアウト処理用
+use std::{any::Any, thread::sleep};
 use tokio;
 use tokio::time::timeout;
 use tokio_postgres::{
@@ -77,7 +80,7 @@ pub async fn addtask(
     #[description = "担当者"] member: serenity::Member,
 ) -> Result<(), serenity::Error> {
     /* コマンドを実行したチャンネルのIDを取得 */
-    let channel_id: String = ctx.channel_id().to_string();
+    let channel_id = ctx.channel_id();
 
     /*
     DBへの接続を試行
@@ -149,6 +152,8 @@ pub async fn change(
     ctx: Context<'_>,
     #[description = "タスクID"] task_id: String,
 ) -> Result<(), serenity::Error> {
+    /* コマンドを実行したチャンネルのIDを取得 */
+    let channel_id = ctx.channel_id();
     // DB処理
 
     // DB処理
@@ -168,29 +173,59 @@ pub async fn change(
     // ----------アクションにボタンを追加----------
     let mut buttons = CreateActionRow::Buttons(vec![btn_run, btn_done]);
 
-    let rep = CreateReply::default()
-        .content("")
-        .content("ステータスをどれに変更しますか？")
-        .components(vec![buttons]);
+    // let rep = CreateReply::default()
+    //     .content("")
+    //     .content("ステータスをどれに変更しますか？")
+    //     .components(vec![buttons]);
 
-    let m = ctx.send(rep).await;
+    let rep2 = CreateMessage::default().components(vec![buttons]);
 
-    // ----------タイムアウト処理----------
-    let um = match m {
+    let _ = ctx.say("ステータスをどれに変更しますか？").await;
+
+    let h = channel_id.send_message(ctx, rep2).await;
+
+    let handle = match h {
         Ok(result) => result,
-        Err(e) => panic!("送信エラー"),
+        Err(_) => panic!("送信失敗"),
     };
 
-    let result = timeout(Duration::from_secs(10), um.delete(ctx)).await;
+    let mi = match handle
+        .await_component_interaction(&ctx)
+        .timeout(Duration::from_secs(10))
+        .await
+    {
+        Some(interaction) => interaction,
+        None => {
+            let _ = handle.delete(ctx).await;
 
-    match result {
-        Ok(_) => {
-            let _ = ctx.reply("変更しました").await;
+            return Err(serenity::Error::Other("タイムアウトしました。".into()));
         }
-        Err(_) => {
-            let _ = ctx.reply("時間切れ").await;
+    };
+
+    let _ = handle.delete(ctx).await;
+
+    let id: &str = &mi.data.custom_id;
+    let _ = match id {
+        "running" => {
+            channel_id
+                .send_message(
+                    ctx,
+                    CreateMessage::default().content("進行中に設定しました"),
+                )
+                .await
         }
-    }
+        "done" => {
+            channel_id
+                .send_message(
+                    ctx,
+                    CreateMessage::default().content("完了済みに設定しました"),
+                )
+                .await
+        }
+        _ => {
+            panic!("エラー");
+        }
+    };
 
     Ok(())
 }

@@ -16,9 +16,9 @@ dotenv = "0.15.0"
 env_logger = "0.9.0"
 log = "0.4.14"
 
-poise = {version = "0.6.1", features = []}
+poise = {version = "0.6.1", features = ["collector"]}
 
-serenity = { version = "0.12.0", default-features = false, features = ["cache", "client", "collector", "gateway", "rustls_backend", "model"] }
+# serenity = { version = "0.12.0", default-features = false, features = ["cache", "client", "collector", "gateway", "rustls_backend", "model"] }
 
 [dependencies.uuid]
 version = "1.7.0"

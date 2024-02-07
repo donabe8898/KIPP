@@ -2,12 +2,11 @@
 
 use poise::serenity_prelude::model::channel;
 use poise::serenity_prelude::{
-    self as serenity, ChannelId, CreateEmbed, Embed, EmbedAuthor, Error, ForumTagId, FutureExt,
-    Guild,
+    self as serenity, ChannelId, CreateEmbed, CreateEmbedFooter, Embed, EmbedAuthor, Error,
+    ForumTagId, FutureExt, Guild,
 };
 use poise::CreateReply;
 
-use ::serenity::builder::CreateEmbedFooter;
 use serenity::model::Timestamp;
 use serenity::prelude::*;
 use std::any::Any;
