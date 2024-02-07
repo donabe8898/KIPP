@@ -146,41 +146,55 @@ pub async fn addtask(
 
 // TODO: タスクの完了
 
-/// ボタンテスト→ステータス変更コマンド
+/// タスクをチャンネルから削除します
 #[poise::command(slash_command)]
-pub async fn change(
+pub async fn removetask(
     ctx: Context<'_>,
     #[description = "タスクID"] task_id: String,
 ) -> Result<(), serenity::Error> {
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
-    // DB処理
+    // ---------- DB処理 ----------
+    /*
+    DBへの接続を試行
+    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
+    */
+    let (client, conn) = match db_conn().await {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("Connected error: {}", e);
+            return Err(serenity::Error::Other("Database connection error".into()));
+        }
+    };
 
-    // DB処理
+    /* 接続タスク実行 */
+    tokio::spawn(async move {
+        if let Err(e) = conn.await {
+            eprintln!("connection error: {}", e);
+            eprintln!("コネクションエラー: {}", e);
+        }
+    });
 
-    // ----------Yesボタン----------
-    let mut btn_run = CreateButton::new("running")
+    // ---------- DB処理おわり ----------
+
+    // ---------- Yesボタン ----------
+    let btn_yes = CreateButton::new("yes")
         .emoji('\u{1f697}')
-        .label("進行中")
+        .label("はい")
         .style(ButtonStyle::Success);
 
-    // ----------Noボタン----------
-    let mut btn_done = CreateButton::new("done")
+    // ---------- Noボタン ----------
+    let btn_no = CreateButton::new("no")
         .emoji('\u{2615}')
-        .label("完了")
+        .label("いいえ")
         .style(ButtonStyle::Secondary);
 
-    // ----------アクションにボタンを追加----------
-    let mut buttons = CreateActionRow::Buttons(vec![btn_run, btn_done]);
-
-    // let rep = CreateReply::default()
-    //     .content("")
-    //     .content("ステータスをどれに変更しますか？")
-    //     .components(vec![buttons]);
+    // ---------- アクションにボタンを追加 ----------
+    let buttons = CreateActionRow::Buttons(vec![btn_yes, btn_no]);
 
     let rep2 = CreateMessage::default().components(vec![buttons]);
 
-    let _ = ctx.say("ステータスをどれに変更しますか？").await;
+    let _ = ctx.say("本当に削除しますか？").await;
 
     let h = channel_id.send_message(ctx, rep2).await;
 
@@ -189,9 +203,10 @@ pub async fn change(
         Err(_) => panic!("送信失敗"),
     };
 
+    // ---------- タイムアウトの秒数を指定 ----------
     let mi = match handle
         .await_component_interaction(&ctx)
-        .timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(20))
         .await
     {
         Some(interaction) => interaction,
@@ -206,21 +221,58 @@ pub async fn change(
 
     let id: &str = &mi.data.custom_id;
     let _ = match id {
-        "running" => {
-            channel_id
-                .send_message(
-                    ctx,
-                    CreateMessage::default().content("進行中に設定しました"),
-                )
-                .await
+        "yes" => {
+            // ========== 削除処理 ==========
+
+            // 削除クエリ
+            let remove_query = format!(
+                "delete from \"{}\" where id=\'{}\';",
+                channel_id.to_string(),
+                task_id
+            );
+            // DBテーブルまるごと削除する際のクエリ（タスクが全部無くなったとき）
+            let remove_table_query = format!("drop table \"{}\";", channel_id.to_string());
+            // テーブルの行数を数えるクエリ
+            let count_row_query = format!("select count(*) from \"{}\"", channel_id.to_string());
+
+            // ========== 削除依頼 ==========
+            let _res = match client.query(&remove_query, &[]).await {
+                Ok(_result) => {
+                    // ========== メッセージ送信でユーザーにお知らせ ==========
+                    let _ = channel_id
+                        .send_message(ctx, CreateMessage::default().content("削除しました"))
+                        .await
+                        .map(|_| ());
+
+                    // ========== 行数カウント ==========
+                    let count_row = client.query(&count_row_query, &[]).await.unwrap();
+                    let count: i64 = count_row[0].get("count");
+
+                    // ========== 0行だったらテーブルごと削除 =========
+                    if count == 0i64 {
+                        let _ = client.query(&remove_table_query, &[]).await;
+                        let _ = channel_id
+                            .send_message(
+                                ctx,
+                                CreateMessage::default()
+                                    .content("チャンネル内タスクが全て無くなりました。"),
+                            )
+                            .await
+                            .map(|_| ());
+                    }
+                }
+
+                Err(_e) => {
+                    return Err(serenity::Error::Other("削除できませんでした".into()));
+                }
+            };
         }
-        "done" => {
-            channel_id
-                .send_message(
-                    ctx,
-                    CreateMessage::default().content("完了済みに設定しました"),
-                )
-                .await
+        "no" => {
+            // ========== メッセージ送信でユーザーにお知らせ ==========
+            let _ = channel_id
+                .send_message(ctx, CreateMessage::default().content("中止しました"))
+                .map(|_| ())
+                .await;
         }
         _ => {
             panic!("エラー");
@@ -243,3 +295,7 @@ pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Erro
 
     Ok((client, conn))
 }
+/* 通常メッセージの送信
+let _ = channel_id.send_message(ctx,CreateMessage::default()
+    .content("チャンネル内タスクが全て無くなりました。"),).await.map(|_| ());
+*/
