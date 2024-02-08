@@ -1,16 +1,17 @@
 //! 表示関係の実装
 
-use poise::serenity_prelude::model::user;
+use poise::serenity_prelude::model::{guild, user};
 // use poise::serenity_prelude::model::channel;
 use poise::serenity_prelude::{
     self as serenity, http, ChannelId, CreateEmbed, CreateEmbedFooter, CreateMessage, Embed,
-    EmbedAuthor, Error, UserId,
+    EmbedAuthor, Error, GuildId, UserId,
 };
 use poise::CreateReply;
 
 use serenity::model::Timestamp;
 use serenity::prelude::*;
 use std::any::Any;
+use std::env;
 use std::os::unix::thread;
 use std::sync::{Arc, OnceLock};
 use tokio::*;
@@ -30,14 +31,30 @@ pub struct Data {}
 *
 */
 
-/// 全タスクの状況をチャンネルごとに一覧形式で表示します。
+// ============== show all command: チャンネルごとにタスクの数を一覧形式で表示 ==============
+// - 引数: 任意のユーザーを選択
+//
+// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
+// 選択されなかったら普通にすべてのタスクを表示
+//
+// =================================================================================
+
+/// チャンネルごとにタスクの数を一覧形式で表示します。
 #[poise::command(slash_command)]
-pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
-    // コマンドを実行したチャンネルID
+pub async fn showall(
+    ctx: Context<'_>,
+    #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
+) -> Result<(), Error> {
+    // ---------- サーバー認証 ----------
+    // .envからギルドIDとってくる
+    let guild_id = env::var("GUILD_ID").expect("missing get token");
+    let guild_id = GuildId::new(guild_id.parse::<u64>().unwrap());
+
+    // ---------- コマンドを実行したチャンネルID ----------
     let this_channel_id = ctx.channel_id().to_string();
 
     /*
-    共通処理
+    ---------- 共通処理 ----------
     DBへの接続を試行
     tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
     */
@@ -50,7 +67,7 @@ pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
     };
 
     /*
-    共通処理
+     ---------- 共通処理 ----------
     接続タスク実行
      */
     tokio::spawn(async move {
@@ -59,35 +76,118 @@ pub async fn showall(ctx: Context<'_>) -> Result<(), Error> {
         }
     });
 
-    /* テーブル取得 */
-    let q: String = format!("select * from \"{}\"", this_channel_id);
-    // let q = format!("select * from testdb");
-    let rows = match client.query(&q, &[]).await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("query error: {}", e);
-            return Err(serenity::Error::Other("Query error".into()));
+    // ---------- ギルド内のテキストチャンネル及びフォーラムチャンネルの取得 ----------
+    // DB内のすべてのテーブル名を取得 "{}"はあとで除く
+    let all_tables_query = "select tablename from pg_tables
+    where schemaname not in('pg_catalog','information_schema')
+    order by tablename;"
+        .to_string();
+
+    // クエリ投げ
+    let tables = client.query(&all_tables_query, &[]).await;
+
+    match tables {
+        // ---------- テーブルが帰ってきた場合 ----------
+        Ok(tables) => {
+            // ========= ユーザー選択あり =========
+            match user {
+                Some(usr) => {
+                    let usr_id = usr.id.to_string();
+
+                    // 返信用
+                    let mut rep_string: String = String::new();
+
+                    for table in tables {
+                        // チャンネルID
+                        let channel_id: String = table.get("tablename");
+                        // {}が帰ってきたらとばす
+                        if &channel_id == "{}" {
+                            continue;
+                        }
+                        // 検索クエリ
+                        let cnt_query = format!(
+                            "select count(*) from \"{}\" where member=\'{}\'",
+                            channel_id, usr_id
+                        );
+                        // クエリ送信
+                        let count = client.query(&cnt_query, &[]).await.unwrap();
+                        // チャンネル内のタスクを数える
+                        let count: i64 = count[0].get("count");
+                        // TODO: 返信
+                        let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
+                        match channel_id.to_channel(ctx.http()).await {
+                            Ok(ch) => {
+                                let s = format!("| {} | : {} 件\n", ch, count);
+                                rep_string.push_str(&s);
+                            }
+                            Err(_) => {
+                                let s = format!("| 不明なチャンネル | {}件\n", count);
+                                rep_string.push_str(&s);
+                            }
+                        };
+                    }
+                    let rep = CreateReply::default().content(rep_string).ephemeral(false);
+                    let _ = ctx.send(rep).await;
+                }
+                // ========= ユーザー選択なし =========
+                None => {
+                    // 返信用
+                    let mut rep_string: String = String::new();
+                    for table in tables {
+                        // チャンネルID
+                        let channel_id: String = table.get("tablename");
+
+                        // {}が帰ってきたらとばす
+                        if &channel_id == "{}" {
+                            continue;
+                        }
+                        // 検索クエリ
+                        let cnt_query = format!("select count(*) from \"{}\";", channel_id);
+                        // クエリ送信
+                        let count = client.query(&cnt_query, &[]).await.unwrap();
+                        // チャンネル内のタスクを数える
+                        let count: i64 = count[0].get("count");
+                        // TODO: 返信
+                        let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
+                        match channel_id.to_channel(ctx.http()).await {
+                            Ok(ch) => {
+                                let s = format!("| {} | : {} 件\n", ch, count);
+                                rep_string.push_str(&s);
+                            }
+                            Err(_) => {
+                                let s = format!("| 不明なチャンネル | {}件\n", count);
+                                rep_string.push_str(&s);
+                            }
+                        };
+                    }
+                    let rep = CreateReply::default().content(rep_string).ephemeral(false);
+                    let _ = ctx.send(rep).await;
+                }
+            };
         }
-    };
-
-    /* row分解して送信形式にまとめる */
-    let mut response = String::new();
-    for row in rows {
-        let id: String = row.get::<&str, uuid::Uuid>("id").to_string();
-        let tast_name: String = row.get("task_name");
-        let users: String = row.get("member");
-
-        response += &format!("id: {:?}, task_name: {}, users: {}\n", id, tast_name, users);
+        // ---------- テーブルが帰ってこなかった場合（多分無い） ----------
+        Err(_) => {
+            return Err(serenity::Error::Other("Cannot find tasks.!".into()));
+        }
     }
 
-    // println!("{}", response);
-    let _ = ctx.reply(response).await;
     Ok(())
 }
 
+// ============== show task command: チャンネルの属するタスクの一覧表示 ==============
+// - 引数: 任意のユーザーを選択
+//
+// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
+// 選択されなかったら普通にすべてのタスクを表示
+//
+// =============================================================================
+
 /// チャンネルに属すタスクを表示
 #[poise::command(slash_command)]
-pub async fn showtask(ctx: Context<'_>) -> Result<(), serenity::Error> {
+pub async fn showtask(
+    ctx: Context<'_>,
+    #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
+) -> Result<(), serenity::Error> {
     // コマンドを実行したチャンネルID
     let this_channel_id = ctx.channel_id();
 
@@ -115,8 +215,21 @@ pub async fn showtask(ctx: Context<'_>) -> Result<(), serenity::Error> {
     });
 
     /* テーブル取得 */
-    // クエリ
-    let q: String = format!("select * from \"{}\"", this_channel_id);
+    let mut q: String = String::new();
+    match user {
+        // ---------- ユーザー選択あり->指定ユーザーのタスク ----------
+        Some(usr) => {
+            let usr_id = usr.id.to_string();
+            q = format!(
+                "select * from \"{}\" where member=\'{}\'",
+                this_channel_id, usr_id
+            );
+        }
+        // ---------- ユーザー選択なし->全ユーザーのタスク ----------
+        None => {
+            q = format!("select * from \"{}\"", this_channel_id);
+        }
+    }
 
     let rows = client.query(&q, &[]).await;
     match rows {
@@ -162,7 +275,7 @@ pub async fn showtask(ctx: Context<'_>) -> Result<(), serenity::Error> {
 
                 task_embeds.push(embed);
             }
-            let mut rep_builder = CreateReply::default();
+            let mut rep_builder = CreateReply::default().ephemeral(true);
             rep_builder.embeds = task_embeds;
             let _ = ctx.send(rep_builder).await;
         }
