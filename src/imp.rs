@@ -327,10 +327,57 @@ pub async fn status(
     };
     let _ = handle.delete(ctx).await;
 
-    // ---------- DBへステータスを反映 ----------
-    let id = &mi.data;
-    println!("{:#?}", id);
+    // ---------- kindのシリアライズ ----------
+    let serialized_kind: serde_json::Value = serde_json::to_value(&mi.data.kind)?;
 
+    // ---------- シリアライズからvalueを取得 ----------
+    let status_code;
+    if let Some(value) = serialized_kind.get("values")
+    // .and_then(serde_json::Value::as_str)
+    {
+        status_code = value.get(0).and_then(serde_json::Value::as_str).unwrap();
+    } else {
+        status_code = "not_found";
+    }
+
+    // ---------- DBへステータスを反映 ----------
+    let status = status_code;
+    match status {
+        "not_found" => {
+            let _ = ctx.reply("エラー発生").await;
+        }
+        _ => {
+            // ---------- 反映クエリ ----------
+            let status_change_query = format!(
+                "update \"{}\" set status=\'{}\' where id=\'{}\'",
+                channel_id.to_string(),
+                status,
+                task_id
+            );
+            // ---------- 反映依頼 ----------
+            let result = client.query(&status_change_query, &[]).await;
+            match result {
+                Ok(_) => {
+                    let _ = ctx
+                        .send(
+                            CreateReply::default()
+                                .ephemeral(true)
+                                .content("ステータスを変更しました"),
+                        )
+                        .await;
+                }
+                Err(_) => {
+                    let _ = ctx
+                        .send(
+                            CreateReply::default()
+                                .ephemeral(true)
+                                .content("ステータスを変更できませんでした"),
+                        )
+                        .await;
+                }
+            };
+        }
+    }
     Ok(())
 }
 
