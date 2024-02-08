@@ -22,59 +22,18 @@ use tokio_postgres::{
 use super::*;
 type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
-#[poise::command(slash_command)]
-pub async fn test(ctx: Context<'_>) -> Result<(), serenity::Error> {
-    //! DB test command
-    /* 返答用string */
-    let mut response = String::new();
-
-    /* コマンドを実行したチャンネルのIDを取得 */
-    let channel_id: String = ctx.channel_id().to_string();
-
-    /*
-    DBへの接続を試行
-
-    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
-    */
-    let (client, conn) = match db_conn().await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("Connected error: {}", e);
-            return Err(serenity::Error::Other("Database connection error".into()));
-        }
-    };
-
-    /* 接続タスク実行 */
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection error: {}", e);
-            eprintln!("コネクションエラー: {}", e);
-        }
-    });
-
-    /* DBテーブル取得 */
-    let rows = match client.query("select * from testdb", &[]).await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("query error: {}", e);
-            return Err(serenity::Error::Other("Query error".into()));
-        }
-    };
-
-    /* 表示とdiscord返信 */
-    for row in rows {
-        let id: i32 = row.get(0);
-        let name: &str = row.get(1);
-        response += &format!("id: {}, name: {}\n", id, name);
-    }
-    let _ = ctx.say(response).await;
-    Ok(())
-}
-
-// TODO: タスクの追加
+// ============== add task command: チャンネルにタスクを追加する ==============
+// - task_name: タスクの名前を入力
+// - member: タスクの担当者を選択
+//
+// タスクを作成してチャンネルに紐付けする。
+// 新規作成されたタスクは自動的にUUIDが割り当てられる
+// タスクは追加時はすべて進行中のステータスになる
+//
+// =============================================================================
 /// タスクを1件追加します
 #[poise::command(slash_command)]
-pub async fn addtask(
+pub async fn add(
     ctx: Context<'_>,
     #[description = "タスク名"] task_name: String,
     #[description = "担当者"] member: serenity::Member,
@@ -144,11 +103,17 @@ pub async fn addtask(
     Ok(())
 }
 
-// TODO: タスクの完了
+// ============== remove task command: タスクを削除する ==============
+// - task_id: 削除したいタスクのUUID
+//
+// チャンネル内のタスクを１つ消します
+// 削除したいタスクのUUIDを引数に取る必要があります
+//
+// ================================================================
 
 /// タスクをチャンネルから削除します
 #[poise::command(slash_command)]
-pub async fn removetask(
+pub async fn remove(
     ctx: Context<'_>,
     #[description = "タスクID"] task_id: String,
 ) -> Result<(), serenity::Error> {
@@ -179,15 +144,13 @@ pub async fn removetask(
 
     // ---------- Yesボタン ----------
     let btn_yes = CreateButton::new("yes")
-        .emoji('\u{1f697}')
         .label("はい")
-        .style(ButtonStyle::Success);
+        .style(ButtonStyle::Secondary);
 
     // ---------- Noボタン ----------
     let btn_no = CreateButton::new("no")
-        .emoji('\u{2615}')
         .label("いいえ")
-        .style(ButtonStyle::Secondary);
+        .style(ButtonStyle::Success);
 
     // ---------- アクションにボタンを追加 ----------
     let buttons = CreateActionRow::Buttons(vec![btn_yes, btn_no]);
@@ -282,6 +245,95 @@ pub async fn removetask(
     Ok(())
 }
 
+// ============== status task command: タスクを編集する ==============
+// - task_id: ステータスの変更をしたいタスクのID
+//
+// チャンネル内のタスクのステータスを変更します
+// タスクのUUIDを引数に取る必要があります
+//
+// ================================================================
+
+/// タスクのステータスを変更します
+#[poise::command(slash_command)]
+pub async fn status(
+    ctx: Context<'_>,
+    #[description = "タスクID"] task_id: String,
+) -> Result<(), serenity::Error> {
+    /* コマンドを実行したチャンネルのIDを取得 */
+    let channel_id = ctx.channel_id();
+    // ---------- DB処理 ----------
+    /*
+    DBへの接続を試行
+    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
+    */
+    let (client, conn) = match db_conn().await {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("Connected error: {}", e);
+            return Err(serenity::Error::Other("Database connection error".into()));
+        }
+    };
+
+    /* 接続タスク実行 */
+    tokio::spawn(async move {
+        if let Err(e) = conn.await {
+            eprintln!("connection error: {}", e);
+            eprintln!("コネクションエラー: {}", e);
+        }
+    });
+
+    // ---------- DB処理おわり ----------
+
+    // ---------- ステータスリスト作成 ----------
+    // (emoji->今のとこなし, lavel, value)
+    // ---------- まずは項目の作成 ----------
+    let select_options = vec![
+        CreateSelectMenuOption::new("進行中", "1"),
+        CreateSelectMenuOption::new("完了済み", "0"),
+    ];
+
+    // ---------- セレクトメニュー作成 ----------
+    let kind = CreateSelectMenuKind::String {
+        options: select_options,
+    };
+    let menu =
+        CreateSelectMenu::new("menu", kind).placeholder("タスクのステータスを選択してください");
+
+    // ---------- アクションにメニュー追加 ----------
+    let action = CreateActionRow::SelectMenu(menu);
+
+    // ---------- メッセージにメニューを乗せる ----------
+    let rep = CreateMessage::new().components(vec![action]);
+    let _ = ctx.say("ステータスの変更を行います").await;
+
+    // ---------- イベントハンドラを受け取る ----------
+    let h = channel_id.send_message(ctx, rep).await;
+    let handle = match h {
+        Ok(result) => result,
+        Err(_) => panic!("Send Error"),
+    };
+
+    // ---------- タイムアウト設定 ----------
+    let mi = match handle
+        .await_component_interaction(&ctx)
+        .timeout(Duration::from_secs(60))
+        .await
+    {
+        Some(interaction) => interaction,
+        None => {
+            let _ = handle.delete(ctx).await;
+            return Err(serenity::Error::Other("タイムアウトしました".into()));
+        }
+    };
+    let _ = handle.delete(ctx).await;
+
+    // ---------- DBへステータスを反映 ----------
+    let id = &mi.data;
+    println!("{:#?}", id);
+
+    Ok(())
+}
+
 /// データベースへの接続処理
 pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Error> {
     let (client, conn) = tokio_postgres::Config::new()
@@ -295,6 +347,7 @@ pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Erro
 
     Ok((client, conn))
 }
+
 /* 通常メッセージの送信
 let _ = channel_id.send_message(ctx,CreateMessage::default()
     .content("チャンネル内タスクが全て無くなりました。"),).await.map(|_| ());

@@ -236,51 +236,61 @@ pub async fn showtask(
         Ok(rows) => {
             /* Embed作成 */
 
-            let mut task_embeds = Vec::new();
-            for row in rows {
-                // まずはrowから情報を抜き出す
-                let task_id = row.get::<&str, uuid::Uuid>("id").to_string();
-                let task_name: String = row.get("task_name");
-                let member: String = row.get("member");
-                let status: i16 = row.get("status");
-                let (status, color) = match status {
-                    0 => ("完了済み", (0, 0, 0)),
-                    1 => ("進行中", (0, 255, 0)),
-                    _ => ("その他", (255, 0, 0)),
-                };
+            // rows<vec>の中身が空でない場合
+            if !rows.is_empty() {
+                let mut task_embeds = Vec::new();
+                for row in rows {
+                    // まずはrowから情報を抜き出す
+                    let task_id = row.get::<&str, uuid::Uuid>("id").to_string();
+                    let task_name: String = row.get("task_name");
+                    let member: String = row.get("member");
+                    let status: i16 = row.get("status");
+                    let (status, color) = match status {
+                        0 => ("完了済み", (0, 0, 0)),
+                        1 => ("進行中", (0, 255, 0)),
+                        _ => ("その他", (255, 0, 0)),
+                    };
 
-                // UserIDに変換
-                let member_int = member.parse::<u64>().unwrap();
-                let usr_id: UserId = UserId::new(member_int);
+                    // UserIDに変換
+                    let member_int = member.parse::<u64>().unwrap();
+                    let usr_id: UserId = UserId::new(member_int);
 
-                // UserIdからUserNameを探す
-                let usr_name = usr_id.to_user(ctx).await;
+                    // UserIdからUserNameを探す
+                    let usr_name = usr_id.to_user(ctx).await;
 
-                let usr_name = match usr_name {
-                    Ok(usr) => usr.to_string(),
-                    Err(_) => "不明なユーザー".to_string(),
-                };
-                // let usr_name = usr_name.to_string();
+                    let usr_name = match usr_name {
+                        Ok(usr) => usr.to_string(),
+                        Err(_) => "不明なユーザー".to_string(),
+                    };
+                    // let usr_name = usr_name.to_string();
 
-                let embed = CreateEmbed::default()
-                    .title(task_name)
-                    .description(format!("タスクID: {}", task_id))
-                    .color(color)
-                    .fields(vec![
-                        ("担当者", usr_name, false),
-                        ("ステータス", status.to_string(), false),
-                    ])
-                    .footer(CreateEmbedFooter::new("コマンド"))
-                    .timestamp(Timestamp::now());
+                    let embed = CreateEmbed::default()
+                        .title(task_name)
+                        .description(format!("タスクID: {}", task_id))
+                        .color(color)
+                        .fields(vec![
+                            ("担当者", usr_name, false),
+                            ("ステータス", status.to_string(), false),
+                        ])
+                        .footer(CreateEmbedFooter::new("コマンド"))
+                        .timestamp(Timestamp::now());
 
-                task_embeds.push(embed);
+                    task_embeds.push(embed);
+                }
+                let mut rep_builder = CreateReply::default().ephemeral(true);
+                rep_builder.embeds = task_embeds;
+                let _ = ctx.send(rep_builder).await;
             }
-            let mut rep_builder = CreateReply::default().ephemeral(true);
-            rep_builder.embeds = task_embeds;
-            let _ = ctx.send(rep_builder).await;
+            // rows<vec>の中身が空の場合
+            else {
+                let rep_builder = CreateReply::default()
+                    .ephemeral(true)
+                    .content("タスクはありません\u{2615}");
+                let _ = ctx.send(rep_builder).await;
+            }
         }
-        Err(e) => {
-            let _ = ctx.say("タスクはありません\u{2615}").await;
+        Err(_) => {
+            let _ = ctx.reply("タスクはありません\u{2615}").await;
         }
     };
 
