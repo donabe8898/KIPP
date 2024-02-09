@@ -1,13 +1,25 @@
-# Imadesho
-Ticket制管理ツール for discord
+# KIPP - KIPP is an Integrated Project Management Program for Discord
+
+
+KIPPはDiscordと上手に統合するプロジェクト管理プログラムです。
+
+
+- TODOアプリとしてもお使い頂けます。
 
 
 # 起動
 ## Dockerでの立ち上げ
-1. `Imadesho/docker`で`sudo docker-compose up -d && docker-compose exec postgres bash`してコンテナに入る。postgresはユーザー名なのでお好みで変更可能。
+1. `KIPP/docker`で`sudo docker-compose up -d && docker-compose exec postgres bash`してコンテナに入る。postgresはユーザー名なのでお好みで変更可能。
 2. `su postgres`でユーザー切り替え
 3. `psql`で入れる。
+4. `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`を実行してUUID拡張機能をインストール
+5. `env_sampel`を参考にプロジェクトルートに`.env`を作成
+6. 起動
 
-あとはテーブル作成など。
 
 参考: [RustでPostgreSQLに接続する](https://qiita.com/takisawa/items/4327c5cb33a8d28ff5e9)
+
+
+# License
+MIT License
+
