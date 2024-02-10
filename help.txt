@@ -1,0 +1,24 @@
+[] - 必須の引数
+{} - 任意の引数
+
+SlashCommand:
+    /help                               ヘルプの表示
+
+    /version                            バージョン情報の表示
+
+    /add     [task_name] [member]       タスクの追加
+                └ <String>  │           タスクの名前
+                            └ <User>    タスクの担当者
+
+    /remove  [task_id]                  タスクの削除
+                └ <Uuid>                タスクのUUID
+
+    /status  [task_id]                  タスクのステータスを変更
+                └ <Uuid>                タスクのUUID
+
+    /showall {member}                   チャンネルごとのタスク件数を出力
+                └ <User>                担当者を指定して出力
+
+
+    /show    {member}                   タスクの表示
+                └ <User>                担当者を指定して出力

@@ -17,6 +17,7 @@ use std::sync::{Arc, OnceLock};
 use tokio::*;
 use uuid::{self, Uuid};
 
+use crate::auth::auth;
 use crate::imp;
 
 // pub type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -46,9 +47,17 @@ pub async fn showall(
     #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
 ) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
-    // .envからギルドIDとってくる
-    let guild_id = env::var("GUILD_ID").expect("missing get token");
-    let guild_id = GuildId::new(guild_id.parse::<u64>().unwrap());
+    if let Some(guild_id) = ctx.guild_id() {
+        let _ = auth(guild_id);
+    } else {
+        let _ = ctx
+            .send(
+                CreateReply::default()
+                    .ephemeral(true)
+                    .content("ギルド内で実行されませんでした"),
+            )
+            .await;
+    }
 
     // ---------- コマンドを実行したチャンネルID ----------
     let this_channel_id = ctx.channel_id().to_string();
@@ -126,7 +135,7 @@ pub async fn showall(
                             }
                         };
                     }
-                    let rep = CreateReply::default().content(rep_string).ephemeral(false);
+                    let rep = CreateReply::default().content(rep_string).ephemeral(true);
                     let _ = ctx.send(rep).await;
                 }
                 // ========= ユーザー選択なし =========
@@ -160,7 +169,7 @@ pub async fn showall(
                             }
                         };
                     }
-                    let rep = CreateReply::default().content(rep_string).ephemeral(false);
+                    let rep = CreateReply::default().content(rep_string).ephemeral(true);
                     let _ = ctx.send(rep).await;
                 }
             };
@@ -184,10 +193,22 @@ pub async fn showall(
 
 /// チャンネルに属すタスクを表示
 #[poise::command(slash_command)]
-pub async fn showtask(
+pub async fn show(
     ctx: Context<'_>,
     #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
 ) -> Result<(), serenity::Error> {
+    // ---------- サーバー認証 ----------
+    if let Some(guild_id) = ctx.guild_id() {
+        let _ = auth(guild_id);
+    } else {
+        let _ = ctx
+            .send(
+                CreateReply::default()
+                    .ephemeral(true)
+                    .content("ギルド内で実行されませんでした"),
+            )
+            .await;
+    }
     // コマンドを実行したチャンネルID
     let this_channel_id = ctx.channel_id();
 
@@ -266,11 +287,11 @@ pub async fn showtask(
 
                     let embed = CreateEmbed::default()
                         .title(task_name)
-                        .description(format!("タスクID: {}", task_id))
+                        .description(format!("{}", task_id))
                         .color(color)
                         .fields(vec![
-                            ("担当者", usr_name, false),
-                            ("ステータス", status.to_string(), false),
+                            ("担当者", usr_name, true),
+                            ("ステータス", status.to_string(), true),
                         ])
                         .footer(CreateEmbedFooter::new("コマンド"))
                         .timestamp(Timestamp::now());

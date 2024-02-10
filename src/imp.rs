@@ -20,6 +20,7 @@ use tokio_postgres::{
 };
 
 use super::*;
+use crate::auth::auth;
 type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
 // ============== add task command: チャンネルにタスクを追加する ==============
@@ -38,6 +39,18 @@ pub async fn add(
     #[description = "タスク名"] task_name: String,
     #[description = "担当者"] member: serenity::Member,
 ) -> Result<(), serenity::Error> {
+    // ---------- サーバー認証 ----------
+    if let Some(guild_id) = ctx.guild_id() {
+        let _ = auth(guild_id);
+    } else {
+        let _ = ctx
+            .send(
+                CreateReply::default()
+                    .ephemeral(true)
+                    .content("ギルド内で実行されませんでした"),
+            )
+            .await;
+    }
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
 
@@ -117,6 +130,18 @@ pub async fn remove(
     ctx: Context<'_>,
     #[description = "タスクID"] task_id: String,
 ) -> Result<(), serenity::Error> {
+    // ---------- サーバー認証 ----------
+    if let Some(guild_id) = ctx.guild_id() {
+        let _ = auth(guild_id);
+    } else {
+        let _ = ctx
+            .send(
+                CreateReply::default()
+                    .ephemeral(true)
+                    .content("ギルド内で実行されませんでした"),
+            )
+            .await;
+    }
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
     // ---------- DB処理 ----------
@@ -259,6 +284,18 @@ pub async fn status(
     ctx: Context<'_>,
     #[description = "タスクID"] task_id: String,
 ) -> Result<(), serenity::Error> {
+    // ---------- サーバー認証 ----------
+    if let Some(guild_id) = ctx.guild_id() {
+        let _ = auth(guild_id);
+    } else {
+        let _ = ctx
+            .send(
+                CreateReply::default()
+                    .ephemeral(true)
+                    .content("ギルド内で実行されませんでした"),
+            )
+            .await;
+    }
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
     // ---------- DB処理 ----------

@@ -6,8 +6,26 @@ KIPPはDiscordと上手に統合するプロジェクト管理プログラムで
 
 - TODOアプリとしてもお使い頂けます。
 
+# Usase
+```
+[] - 必須の引数
+{} - 任意の引数
 
-# 起動
+SlashCommand:
+    /help                            ヘルプの表示
+    /version                         バージョン情報の表示
+
+    /add     [task_name] [member]    タスクの追加
+    /remove  [task_id]               タスクの削除
+    /status  [task_id]               タスクのステータスを変更
+
+    /showall {member}                チャンネルごとのタスク件数を出力
+    /show    {member}                タスクの表示
+```
+
+
+
+# Run
 ## Dockerでの立ち上げ
 1. `KIPP/docker`で`sudo docker-compose up -d && docker-compose exec postgres bash`してコンテナに入る。postgresはユーザー名なのでお好みで変更可能。
 2. `su postgres`でユーザー切り替え

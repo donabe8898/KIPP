@@ -1,5 +1,7 @@
+mod auth;
 mod disp;
 mod imp;
+mod support;
 use poise::serenity_prelude as serenity;
 
 use std::env;
@@ -39,10 +41,12 @@ async fn main() -> Result<(), Error> {
         .options(poise::FrameworkOptions {
             commands: vec![
                 disp::showall(),
-                disp::showtask(),
+                disp::show(),
                 imp::status(),
                 imp::add(),
                 imp::remove(),
+                support::help(),
+                support::version(),
             ],
             ..Default::default()
         })
