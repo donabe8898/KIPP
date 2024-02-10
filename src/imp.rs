@@ -5,20 +5,15 @@
 // Copyright © 2024 donabe8898. All rights reserved.
 
 use chrono::NaiveDate;
-use futures_util::TryFutureExt;
-use poise::reply::ReplyHandle;
+
 use poise::serenity_prelude::*;
 use poise::*;
 
-use serde::{de::IntoDeserializer, Deserialize, Serialize};
 use std::time::Duration; // タイムアウト処理用
-use std::{any::Any, thread::sleep};
+
 use tokio;
-use tokio::time::timeout;
-use tokio_postgres::{
-    tls::{NoTlsStream, TlsConnect},
-    Client, Connection, Error, NoTls, Row, Socket,
-};
+
+use tokio_postgres::{tls::NoTlsStream, Client, Connection, Error, Socket};
 
 use super::*;
 use crate::auth::auth;
@@ -133,7 +128,7 @@ pub async fn add(
             status smallint DEFAULT 1);",
         channel_id
     );
-
+    println!("{}", create);
     // ---------- クエリ送信 ----------
     let _res = match client
         .query(&insert, &[&tsk_name, &description, &member_id, &dline])
@@ -143,8 +138,10 @@ pub async fn add(
         Err(_e) => {
             let _e_res = match client.query(&create, &[]).await {
                 Ok(_result) => {
-                    let res = client.query(&insert, &[]).await;
-                    if let Ok(r) = res {
+                    let res = client
+                        .query(&insert, &[&tsk_name, &description, &member_id, &dline])
+                        .await;
+                    if let Ok(_) = res {
                     } else {
                         return Err(serenity::Error::Other("タスクの登録に失敗しました".into()));
                     }

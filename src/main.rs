@@ -26,6 +26,7 @@ pub struct Data {}
     他のモジュールでも使いまわします
 */
 type Error = Box<dyn std::error::Error + Send + Sync>;
+
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[tokio::main]

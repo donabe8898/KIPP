@@ -12,7 +12,6 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
-.env
 
 
 # Added by cargo
@@ -20,5 +19,8 @@ Cargo.lock
 /target
 
 /.vscode
+/.fleet
 
 .memo.txt
+.env
+print.txt

@@ -1,21 +1,18 @@
 //! 表示関係の実装
 
-use poise::serenity_prelude::model::{guild, user};
-// use poise::serenity_prelude::model::channel;
 use poise::serenity_prelude::{
-    self as serenity, http, ChannelId, CreateEmbed, CreateEmbedFooter, CreateMessage, Embed,
-    EmbedAuthor, Error, GuildId, UserId,
+    self as serenity, ChannelId, CreateEmbed, CreateEmbedFooter, Error, UserId,
 };
 use poise::CreateReply;
 
 use serenity::model::Timestamp;
-use serenity::prelude::*;
-use std::any::Any;
-use std::env;
-use std::os::unix::thread;
-use std::sync::{Arc, OnceLock};
-use tokio::*;
-use uuid::{self, Uuid};
+// use serenity::prelude::*;
+// use std::any::Any;
+// use std::env;
+// use std::os::unix::thread;
+// use std::sync::{Arc, OnceLock};
+
+use uuid::{self};
 
 use crate::auth::auth;
 use crate::imp;
@@ -24,7 +21,6 @@ use crate::imp;
 
 /// 返信に使うコンテキスト
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
-pub struct Data {}
 
 /*
 * - TODO: showall 全てのチャンネルで何件のタスクが登録されているか表示するコマンド
@@ -60,7 +56,7 @@ pub async fn showall(
     }
 
     // ---------- コマンドを実行したチャンネルID ----------
-    let this_channel_id = ctx.channel_id().to_string();
+    let _this_channel_id = ctx.channel_id().to_string();
 
     /*
     ---------- 共通処理 ----------
@@ -236,7 +232,7 @@ pub async fn show(
     });
 
     /* テーブル取得 */
-    let mut q: String = String::new();
+    let q: String;
     match user {
         // ---------- ユーザー選択あり->指定ユーザーのタスク ----------
         Some(usr) => {
