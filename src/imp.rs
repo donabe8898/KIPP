@@ -128,7 +128,6 @@ pub async fn add(
             status smallint DEFAULT 1);",
         channel_id
     );
-    println!("{}", create);
     // ---------- クエリ送信 ----------
     let _res = match client
         .query(&insert, &[&tsk_name, &description, &member_id, &dline])
