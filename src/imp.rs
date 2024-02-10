@@ -4,6 +4,7 @@
 
 // Copyright © 2024 donabe8898. All rights reserved.
 
+use chrono::NaiveDate;
 use futures_util::TryFutureExt;
 use poise::reply::ReplyHandle;
 use poise::serenity_prelude::*;
@@ -37,7 +38,9 @@ type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 pub async fn add(
     ctx: Context<'_>,
     #[description = "タスク名"] task_name: String,
-    #[description = "担当者"] member: serenity::Member,
+    #[description = "タスクの概要"] description: Option<String>,
+    #[description = "担当者"] member: Option<serenity::Member>,
+    #[description = "〆切日"] deadline: Option<String>,
 ) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -83,25 +86,68 @@ pub async fn add(
     - 終了 = 0
     */
 
+    // ---------- タスクの名前 ----------
     let tsk_name: String = task_name;
-    let member_id: UserId = member.user.id;
+    // ---------- タスクの概要 ----------
+    let description: Option<String> = if let Some(d) = description {
+        d.into()
+    } else {
+        None
+    };
 
-    // レコード作成用クエリ文
+    // ---------- タスクの担当者 ----------
+    let member_id: Option<String> = if let Some(m) = member {
+        format!("{}", m.user.id).into()
+    } else {
+        None
+    };
+    // ---------- タスクの〆切 ----------
+    // 〆切を設定している？
+    let dline: Option<NaiveDate> = if let Some(dl) = deadline {
+        // フォーマットが正しい？
+        let naive_date: Option<NaiveDate> = match chrono::NaiveDate::parse_from_str(&dl, "%Y-%m-%d")
+        {
+            Ok(date) => Some(date),
+            Err(_) => None,
+        };
+        naive_date
+    } else {
+        None
+    };
+    // ---------- レコード作成用クエリ文 ----------
+    // dlineは'None'
+    // $1などはvaluesにしか使えないらしい
     let insert = format!(
-        "insert into \"{}\" (id, task_name, member, status) values (uuid_generate_v4(), \'{}\', \'{}\', 1);",
-        channel_id, tsk_name, member_id
+        "insert into \"{}\" values (uuid_generate_v4(), $1, $2, $3, $4, 1);",
+        channel_id
     );
 
-    // テーブル作成用クエリ文
-    let create = format!("create table \"{}\" (id uuid DEFAULT uuid_generate_v4(), task_name text NOT NULL, member text NOT NULL, status smallint DEFAULT 1);",channel_id);
+    // ---------- テーブル作成用クエリ文 ----------
+    let create = format!(
+        "create table \"{}\" (\
+            id uuid DEFAULT uuid_generate_v4(), \
+            task_name text NOT NULL, \
+            description text,\
+            member text, \
+            deadline date, \
+            status smallint DEFAULT 1);",
+        channel_id
+    );
 
-    // クエリ送信
-    let _res = match client.query(&insert, &[]).await {
+    // ---------- クエリ送信 ----------
+    let _res = match client
+        .query(&insert, &[&tsk_name, &description, &member_id, &dline])
+        .await
+    {
         Ok(_result) => {}
         Err(_e) => {
             let _e_res = match client.query(&create, &[]).await {
                 Ok(_result) => {
-                    let _ = client.query(&insert, &[]).await;
+                    let res = client.query(&insert, &[]).await;
+                    if let Ok(r) = res {
+                    } else {
+                        return Err(serenity::Error::Other("タスクの登録に失敗しました".into()));
+                    }
                 }
                 Err(_e) => {
                     return Err(serenity::Error::Other("タスクの登録に失敗しました".into()));

@@ -261,10 +261,18 @@ pub async fn show(
             if !rows.is_empty() {
                 let mut task_embeds = Vec::new();
                 for row in rows {
-                    // まずはrowから情報を抜き出す
+                    // ---------- まずはrowから情報を抜き出す ----------
+                    // タスクID
                     let task_id = row.get::<&str, uuid::Uuid>("id").to_string();
+                    // タスク名
                     let task_name: String = row.get("task_name");
-                    let member: String = row.get("member");
+                    // 概要
+                    let description: Option<String> = row.get("description");
+                    // 担当者
+                    let member: Option<String> = row.get("member");
+                    // 〆切日
+                    let deadline: Option<chrono::NaiveDate> = row.get("deadline");
+                    // ステータス
                     let status: i16 = row.get("status");
                     let (status, color) = match status {
                         0 => ("完了済み", (0, 0, 0)),
@@ -273,24 +281,38 @@ pub async fn show(
                     };
 
                     // UserIDに変換
-                    let member_int = member.parse::<u64>().unwrap();
-                    let usr_id: UserId = UserId::new(member_int);
+                    // 最終的にembedへ組み込む
+                    let content_user_name;
+                    // ---------- memberがNoneかどうか ----------
+                    if let Some(m) = member {
+                        let member_int = m.parse::<u64>().unwrap();
+                        let usr_id = UserId::new(member_int);
+                        // UserIdからUserNameを探す
+                        let usr_name = usr_id.to_user(ctx).await;
 
-                    // UserIdからUserNameを探す
-                    let usr_name = usr_id.to_user(ctx).await;
-
-                    let usr_name = match usr_name {
-                        Ok(usr) => usr.to_string(),
-                        Err(_) => "不明なユーザー".to_string(),
+                        let usr_name = match usr_name {
+                            Ok(usr) => usr.to_string(),
+                            Err(_) => "不明なユーザー".to_string(),
+                        };
+                        content_user_name = usr_name;
+                    } else {
+                        content_user_name = "None".to_string();
                     };
-                    // let usr_name = usr_name.to_string();
+                    // ---------- 締切日が設定されているかどうか ----------
+                    let dline = if let Some(d) = deadline {
+                        d.format("%Y-%m-%d").to_string()
+                    } else {
+                        "〆切はありません".to_string()
+                    };
 
                     let embed = CreateEmbed::default()
                         .title(task_name)
-                        .description(format!("{}", task_id))
+                        .description(format!("{:?}", description))
                         .color(color)
                         .fields(vec![
-                            ("担当者", usr_name, true),
+                            ("タスクID", task_id, false),
+                            ("担当者", content_user_name, true),
+                            ("〆切", dline, true),
                             ("ステータス", status.to_string(), true),
                         ])
                         .footer(CreateEmbedFooter::new("コマンド"))
