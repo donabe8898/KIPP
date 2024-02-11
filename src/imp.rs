@@ -153,8 +153,9 @@ pub async fn add(
     };
 
     /* 完了メッセージ */
+    let rep = CreateReply::default().ephemeral(true).content("タスクを登録しました");
 
-    let _ = ctx.reply("タスクを登録しました").await;
+    let _ = ctx.send(rep).await;
     Ok(())
 }
 
