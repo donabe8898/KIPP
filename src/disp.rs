@@ -276,6 +276,12 @@ pub async fn show(
                         _ => ("その他", (255, 0, 0)),
                     };
 
+                    // ---------- descriptionがNoneなら無にする ----------
+                    let con_description = match description {
+                        Some(d) => d,
+                        None => "説明なし".to_string(),
+                    };
+
                     // UserIDに変換
                     // 最終的にembedへ組み込む
                     let content_user_name;
@@ -303,7 +309,7 @@ pub async fn show(
 
                     let embed = CreateEmbed::default()
                         .title(task_name)
-                        .description(format!("{:?}", description))
+                        .description(format!("{}", con_description))
                         .color(color)
                         .fields(vec![
                             ("タスクID", task_id, false),
