@@ -20,6 +20,8 @@ Cargo.lock
 
 /.vscode
 /.fleet
+/.idea
+
 
 .memo.txt
 .env
