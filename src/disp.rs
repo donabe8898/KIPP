@@ -41,6 +41,7 @@ pub type Context<'a> = poise::Context<'a, super::Data, Error>;
 pub async fn showall(
     ctx: Context<'_>,
     #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
+    #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
 ) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -118,7 +119,8 @@ pub async fn showall(
                         let count = client.query(&cnt_query, &[]).await.unwrap();
                         // チャンネル内のタスクを数える
                         let count: i64 = count[0].get("count");
-                        // TODO: 返信
+                        // --------- 返信
+
                         let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
                         match channel_id.to_channel(ctx.http()).await {
                             Ok(ch) => {
@@ -131,7 +133,13 @@ pub async fn showall(
                             }
                         };
                     }
-                    let rep = CreateReply::default().content(rep_string).ephemeral(true);
+                    // ---------- 返信を見せるかどうか ----------
+                    // 原則は自分のみ表示
+                    let is_disp = if let Some(b) = display { !b } else { true };
+                    // ---------- リプライビルダー作成 ----------
+                    let rep = CreateReply::default()
+                        .content(rep_string)
+                        .ephemeral(is_disp);
                     let _ = ctx.send(rep).await;
                 }
                 // ========= ユーザー選択なし =========
@@ -165,7 +173,12 @@ pub async fn showall(
                             }
                         };
                     }
-                    let rep = CreateReply::default().content(rep_string).ephemeral(true);
+                    // ---------- 返信を見せるかどうか ----------
+                    let is_disp = if let Some(b) = display { !b } else { true };
+                    // ---------- リプライビルダー作成 ----------
+                    let rep = CreateReply::default()
+                        .content(rep_string)
+                        .ephemeral(is_disp);
                     let _ = ctx.send(rep).await;
                 }
             };
@@ -192,6 +205,7 @@ pub async fn showall(
 pub async fn show(
     ctx: Context<'_>,
     #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
+    #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
 ) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -247,6 +261,10 @@ pub async fn show(
             q = format!("select * from \"{}\"", this_channel_id);
         }
     }
+
+    // ---------- 返信を見せるかどうか ----------
+    // 原則は自分のみ表示
+    let is_disp = if let Some(b) = display { !b } else { true };
 
     let rows = client.query(&q, &[]).await;
     match rows {
@@ -322,14 +340,14 @@ pub async fn show(
 
                     task_embeds.push(embed);
                 }
-                let mut rep_builder = CreateReply::default().ephemeral(true);
+                let mut rep_builder = CreateReply::default().ephemeral(is_disp);
                 rep_builder.embeds = task_embeds;
                 let _ = ctx.send(rep_builder).await;
             }
             // rows<vec>の中身が空の場合
             else {
                 let rep_builder = CreateReply::default()
-                    .ephemeral(true)
+                    .ephemeral(is_disp)
                     .content("タスクはありません\u{2615}");
                 let _ = ctx.send(rep_builder).await;
             }

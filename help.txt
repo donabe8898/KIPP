@@ -2,23 +2,33 @@
 {} - 任意の引数
 
 SlashCommand:
-    /help                               ヘルプの表示
+    # ヘルプ
+    /help
 
-    /version                            バージョン情報の表示
+    # バージョン表示
+    /version
 
-    /add     [task_name] [member]       タスクの追加
-                └ <String>  │           タスクの名前
-                            └ <User>    タスクの担当者
+    # タスク追加
+    /add [task_name] {description} {member} {deadline}
+        - task_name <text>      : タスク名
+        - description <text>    : タスクの説明
+        - member <User>         : 担当者
+        - deadline <YYYY-MM-DD> : 締切日
+            入力例: 2024-9-11
 
-    /remove  [task_id]                  タスクの削除
-                └ <Uuid>                タスクのUUID
+    # タスク削除
+    /remove  [task_id]
+        - task_id <text> : タスクのUUID
 
-    /status  [task_id]                  タスクのステータスを変更
-                └ <Uuid>                タスクのUUID
+    # タスクのステータスを変更
+    /status  [task_id]
+        - task_id <text> : タスクのUUID
 
-    /showall {member}                   チャンネルごとのタスク件数を出力
-                └ <User>                担当者を指定して出力
+    # ギルド内のタスク数を表示
+    /showall {member} {display}
+        - member <User>  : 担当者
+        - display <bool> : 他の人にも見せる
 
-
-    /show    {member}                   タスクの表示
-                └ <User>                担当者を指定して出力
+    /show  {member} {display}
+        - member <User>  : 担当者
+        - display <bool> : 他の人にも見せる
