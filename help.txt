@@ -32,3 +32,4 @@ SlashCommand:
     /show  {member} {display}
         - member <User>  : 担当者
         - display <bool> : 他の人にも見せる
+

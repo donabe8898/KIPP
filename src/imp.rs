@@ -1,5 +1,5 @@
-//! タスクの追加を行う実装
-//! エラーがserenityと別なので注意する.
+//! DB内のデータを追加・編集・削除する実装
+//!
 //! エラーはすべてserenityのものへ統一化
 
 // Copyright © 2024 donabe8898. All rights reserved.
@@ -19,23 +19,32 @@ use super::*;
 use crate::auth::auth;
 type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
-// ============== add task command: チャンネルにタスクを追加する ==============
-// - task_name: タスクの名前を入力
-// - member: タスクの担当者を選択
-//
-// タスクを作成してチャンネルに紐付けする。
-// 新規作成されたタスクは自動的にUUIDが割り当てられる
-// タスクは追加時はすべて進行中のステータスになる
-//
-// =============================================================================
+
 /// タスクを1件追加します
-#[poise::command(slash_command)]
+///
+///
+/// タスクを作成してチャンネルに紐付けする.
+///
+///
+/// 新規作成されたタスクは自動的にUUIDが割り当てられる.
+///
+///
+/// タスクは追加時はすべて進行中のステータスになる.
+///
+/// # 引数
+///
+/// * `ctx` - コマンド起動時の情報が入ったブツ
+/// * `task_name` - タスク名（必須）
+/// * `description` - タスクの概要や説明があれば入力
+/// * `member` - タスクの担当者を決める場合に入力
+/// * `deadline` - タスクの期限日を設定する場合は入力
+///
 pub async fn add(
     ctx: Context<'_>,
-    #[description = "タスク名"] task_name: String,
-    #[description = "タスクの概要"] description: Option<String>,
-    #[description = "担当者"] member: Option<serenity::Member>,
-    #[description = "〆切日"] deadline: Option<String>,
+    task_name: String,
+    description: Option<String>,
+    member: Option<serenity::Member>,
+    deadline: Option<String>,
 ) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -159,19 +168,19 @@ pub async fn add(
     Ok(())
 }
 
-// ============== remove task command: タスクを削除する ==============
-// - task_id: 削除したいタスクのUUID
-//
-// チャンネル内のタスクを１つ消します
-// 削除したいタスクのUUIDを引数に取る必要があります
-//
-// ================================================================
+/// タスクをチャンネルから削除
+///
+/// Bot側から削除するかどうか聞いてくる. 一定時間内に応答がなければタイムアウトという
+/// 形で削除しない選択を取る.
+///
+/// # 引数
+///
+/// * `ctx` - コマンド起動時の情報が入ったブツ
+/// * `task_id` - タスクのID (UUIDv4)
 
-/// タスクをチャンネルから削除します
-#[poise::command(slash_command)]
 pub async fn remove(
     ctx: Context<'_>,
-    #[description = "タスクID"] task_id: String,
+    task_id: String,
 ) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -313,19 +322,20 @@ pub async fn remove(
     Ok(())
 }
 
-// ============== status task command: タスクを編集する ==============
-// - task_id: ステータスの変更をしたいタスクのID
-//
-// チャンネル内のタスクのステータスを変更します
-// タスクのUUIDを引数に取る必要があります
-//
-// ================================================================
 
 /// タスクのステータスを変更します
-#[poise::command(slash_command)]
+///
+/// ステータスをどれに変更するかのプルダウンメニューが表示される.
+/// こちらも一定時間応答がないとタイムアウトする
+///
+/// # 引数
+///
+/// * `ctx` - コマンド起動時の情報が入ったブツ
+/// * `task_id` - タスクのID (UUIDv4)
+
 pub async fn status(
     ctx: Context<'_>,
-    #[description = "タスクID"] task_id: String,
+    task_id: String,
 ) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -462,6 +472,10 @@ pub async fn status(
 }
 
 /// データベースへの接続処理
+///
+///
+/// 一定時間立つと接続は解除されるため、切断処理は実装しなくてもOK
+///
 pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Error> {
     let (client, conn) = tokio_postgres::Config::new()
         .user("postgres")
@@ -475,7 +489,4 @@ pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Erro
     Ok((client, conn))
 }
 
-/* 通常メッセージの送信
-let _ = channel_id.send_message(ctx,CreateMessage::default()
-    .content("チャンネル内タスクが全て無くなりました。"),).await.map(|_| ());
-*/
+

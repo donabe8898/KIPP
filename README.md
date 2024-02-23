@@ -12,15 +12,37 @@ KIPPはDiscordと上手に統合するプロジェクト管理プログラムで
 {} - 任意の引数
 
 SlashCommand:
-    /help                            ヘルプの表示
-    /version                         バージョン情報の表示
+    # ヘルプ
+    /help
 
-    /add     [task_name] [member]    タスクの追加
-    /remove  [task_id]               タスクの削除
-    /status  [task_id]               タスクのステータスを変更
+    # バージョン表示
+    /version
 
-    /showall {member}                チャンネルごとのタスク件数を出力
-    /show    {member}                タスクの表示
+    # タスク追加
+    /add [task_name] {description} {member} {deadline}
+        - task_name <text>      : タスク名
+        - description <text>    : タスクの説明
+        - member <User>         : 担当者
+        - deadline <YYYY-MM-DD> : 締切日
+            入力例: 2024-9-11
+
+    # タスク削除
+    /remove  [task_id]
+        - task_id <text> : タスクのUUID
+
+    # タスクのステータスを変更
+    /status  [task_id]
+        - task_id <text> : タスクのUUID
+
+    # ギルド内のタスク数を表示
+    /showall {member} {display}
+        - member <User>  : 担当者
+        - display <bool> : 他の人にも見せる
+
+    /show  {member} {display}
+        - member <User>  : 担当者
+        - display <bool> : 他の人にも見せる
+
 ```
 
 
@@ -36,6 +58,11 @@ SlashCommand:
 
 
 参考: [RustでPostgreSQLに接続する](https://qiita.com/takisawa/items/4327c5cb33a8d28ff5e9)
+
+# アップデート情報
+
+- README.mdのUsaseの内容を修正しました.
+- コードの保守性とドキュメンテーションコメントの生成を可能にする為, commands.rsにモジュール分割しました.
 
 
 # License

@@ -1,7 +1,4 @@
-//! support.rs
-//! ========== サポートコマンド実装 ==========
-//! - /help: コマンドのヘルプを表示
-//! - /version: コマンドのバージョン情報等を表示
+//! サポートコマンドの実装
 
 use poise::serenity_prelude::*;
 use poise::*;
@@ -16,16 +13,11 @@ use std::io::{BufRead, BufReader};
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
 pub struct Data {}
 
-// ============== help: コマンドの使い方の表示 ==============
-// - 引数: なし
-//
-// コマンドのヘルプを表示させます。
-// 使い方や引数の意味などを記す
-//
-// ======================================================
 
 /// ヘルプの表示
-#[poise::command(slash_command)]
+///
+/// help.txtの中身をmarkdown形式で送信
+///
 pub async fn help(ctx: Context<'_>) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -65,8 +57,10 @@ pub async fn help(ctx: Context<'_>) -> Result<(), Error> {
 //
 // ======================================================
 
-// バージョン情報
-#[poise::command(slash_command)]
+/// バージョン情報
+///
+/// Cargo.tomlのバージョンを返信
+///
 pub async fn version(ctx: Context<'_>) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {

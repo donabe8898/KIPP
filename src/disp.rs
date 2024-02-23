@@ -4,44 +4,34 @@ use poise::serenity_prelude::{
     self as serenity, ChannelId, CreateEmbed, CreateEmbedFooter, Error, UserId,
 };
 use poise::CreateReply;
-
 use serenity::model::Timestamp;
-// use serenity::prelude::*;
-// use std::any::Any;
-// use std::env;
-// use std::os::unix::thread;
-// use std::sync::{Arc, OnceLock};
-
 use uuid::{self};
 
 use crate::auth::auth;
 use crate::imp;
 
-// pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
 /// 返信に使うコンテキスト
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
 
-/*
-* - TODO: showall 全てのチャンネルで何件のタスクが登録されているか表示するコマンド
-* - TODO: show チャンネルに紐付けられたタスクの表示
-*
-*/
 
-// ============== show all command: チャンネルごとにタスクの数を一覧形式で表示 ==============
-// - 引数: 任意のユーザーを選択
-//
-// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
-// 選択されなかったら普通にすべてのタスクを表示
-//
-// =================================================================================
 
 /// チャンネルごとにタスクの数を一覧形式で表示します。
-#[poise::command(slash_command)]
+///
+///
+/// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
+/// 選択されなかったら普通にすべてのタスクを表示
+///
+/// # 引数
+///
+/// * `ctx` - コマンド起動時の情報が入ったブツ
+/// * `user` - ユーザーを限定して出力させる場合は入力
+/// * `display` - 自分だけのメッセージとして表示させる場合は`true`
+///
 pub async fn showall(
     ctx: Context<'_>,
-    #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
-    #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
+    user: Option<serenity::User>,
+    display: Option<bool>,
 ) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
@@ -68,7 +58,7 @@ pub async fn showall(
         Ok(result) => result,
         Err(e) => {
             eprintln!("Connected error: {}", e);
-            return Err(serenity::Error::Other("Database connection error".into()));
+            return Err(Error::Other("Database connection error".into()));
         }
     };
 
@@ -185,28 +175,32 @@ pub async fn showall(
         }
         // ---------- テーブルが帰ってこなかった場合（多分無い） ----------
         Err(_) => {
-            return Err(serenity::Error::Other("Cannot find tasks.!".into()));
+            return Err(Error::Other("Cannot find tasks.!".into()));
         }
     }
 
     Ok(())
 }
 
-// ============== show task command: チャンネルの属するタスクの一覧表示 ==============
-// - 引数: 任意のユーザーを選択
-//
-// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
-// 選択されなかったら普通にすべてのタスクを表示
-//
-// =============================================================================
+
 
 /// チャンネルに属すタスクを表示
-#[poise::command(slash_command)]
+///
+///
+/// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
+/// 選択されなかったら普通にすべてのタスクを表示
+///
+/// # 引数
+///
+/// * `ctx` - コマンド起動時の情報が入ったブツ
+/// * `user` - ユーザーを限定して出力させる場合は入力
+/// * `display` - 自分だけのメッセージとして表示させる場合は`true`
+
 pub async fn show(
     ctx: Context<'_>,
-    #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
-    #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
-) -> Result<(), serenity::Error> {
+    user: Option<serenity::User>,
+    display: Option<bool>,
+) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
     if let Some(guild_id) = ctx.guild_id() {
         let _ = auth(guild_id);
@@ -231,7 +225,7 @@ pub async fn show(
         Ok(result) => result,
         Err(e) => {
             eprintln!("Connected error: {}", e);
-            return Err(serenity::Error::Other("Database connection error".into()));
+            return Err(Error::Other("Database connection error".into()));
         }
     };
 
@@ -357,10 +351,6 @@ pub async fn show(
         }
     };
 
-    // if rows.is_empty() {
-    //     let _ = ctx.say("タスクはありません\u{2615}").await;
-    // } else {
-    // }
 
     Ok(())
 }
