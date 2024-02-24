@@ -29,6 +29,7 @@ SlashCommand:
         - member <User>  : 担当者
         - display <bool> : 他の人にも見せる
 
+    # チャンネル内のタスクを表示
     /show  {member} {display}
         - member <User>  : 担当者
         - display <bool> : 他の人にも見せる

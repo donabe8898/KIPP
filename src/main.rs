@@ -1,8 +1,8 @@
+mod auth;
 mod commands;
 mod disp;
 mod imp;
 mod support;
-mod auth;
 
 use poise::serenity_prelude as serenity;
 

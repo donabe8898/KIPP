@@ -231,10 +231,11 @@ pub async fn remove(
 
     // ---------- アクションにボタンを追加 ----------
     let buttons = CreateActionRow::Buttons(vec![btn_yes, btn_no]);
-
     let rep2 = CreateMessage::default().components(vec![buttons]);
 
-    let _ = ctx.say("本当に削除しますか？").await;
+    // ---------- 削除しますか？？？？ ----------
+    let how_del = CreateReply::default().ephemeral(true).content("本当に削除しますか？");
+    let _ = ctx.send(how_del).await;
 
     let h = channel_id.send_message(ctx, rep2).await;
 
@@ -272,6 +273,7 @@ pub async fn remove(
             );
             // DBテーブルまるごと削除する際のクエリ（タスクが全部無くなったとき）
             let remove_table_query = format!("drop table \"{}\";", channel_id.to_string());
+
             // テーブルの行数を数えるクエリ
             let count_row_query = format!("select count(*) from \"{}\"", channel_id.to_string());
 
