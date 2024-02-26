@@ -1,10 +1,8 @@
 # KIPP - KIPP is an Integrated Project Management Program for Discord
 
+KIPPはDiscordと上手に統合するプロジェクト管理プログラムです.
 
-KIPPはDiscordと上手に統合するプロジェクト管理プログラムです。
-
-
-- TODOアプリとしてもお使い頂けます。
+- 要するにタスク管理Botなので、TODOアプリとしても使えます.
 
 # Usage
 ```
@@ -51,10 +49,10 @@ SlashCommand:
 ## Dockerでの立ち上げ
 1. `KIPP/docker`で`sudo docker-compose up -d && docker-compose exec postgres bash`してコンテナに入る。postgresはユーザー名なのでお好みで変更可能。
 2. `su postgres`でユーザー切り替え
-3. `psql`で入れる。
+3. `psql`コマンドでpostgresに入る
 4. `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`を実行してUUID拡張機能をインストール
-5. `env_sampel`を参考にプロジェクトルートに`.env`を作成
-6. 起動
+5. `dotenv.sample`を参考にプロジェクトルートに`.env`を作成
+6. bot起動
 
 
 参考: [RustでPostgreSQLに接続する](https://qiita.com/takisawa/items/4327c5cb33a8d28ff5e9)
