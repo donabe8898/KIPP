@@ -8,6 +8,7 @@ use serenity::model::Timestamp;
 use uuid::{self};
 
 use crate::auth::auth;
+use crate::db::{connect_to_db, db_conn};
 use crate::imp;
 
 
@@ -33,44 +34,12 @@ pub async fn showall(
     user: Option<serenity::User>,
     display: Option<bool>,
 ) -> Result<(), Error> {
-    // ---------- サーバー認証 ----------
-    if let Some(guild_id) = ctx.guild_id() {
-        let _ = auth(guild_id);
-    } else {
-        let _ = ctx
-            .send(
-                CreateReply::default()
-                    .ephemeral(true)
-                    .content("ギルド内で実行されませんでした"),
-            )
-            .await;
-    }
-
     // ---------- コマンドを実行したチャンネルID ----------
     let _this_channel_id = ctx.channel_id().to_string();
 
-    /*
-    ---------- 共通処理 ----------
-    DBへの接続を試行
-    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
-    */
-    let (client, conn) = match imp::db_conn().await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("Connected error: {}", e);
-            return Err(Error::Other("Database connection error".into()));
-        }
-    };
-
-    /*
-     ---------- 共通処理 ----------
-    接続タスク実行
-     */
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection err: {}", e);
-        }
-    });
+    // ---------- 共通処理 ----------
+    // DBへの接続を試行
+    let client = connect_to_db().await.unwrap();
 
     // ---------- ギルド内のテキストチャンネル及びフォーラムチャンネルの取得 ----------
     // DB内のすべてのテーブル名を取得 "{}"はあとで除く
@@ -201,45 +170,14 @@ pub async fn show(
     user: Option<serenity::User>,
     display: Option<bool>,
 ) -> Result<(), Error> {
-    // ---------- サーバー認証 ----------
-    if let Some(guild_id) = ctx.guild_id() {
-        let _ = auth(guild_id);
-    } else {
-        let _ = ctx
-            .send(
-                CreateReply::default()
-                    .ephemeral(true)
-                    .content("ギルド内で実行されませんでした"),
-            )
-            .await;
-    }
     // コマンドを実行したチャンネルID
     let this_channel_id = ctx.channel_id();
 
-    /*
-    共通処理
-    DBへの接続を試行
-    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
-    */
-    let (client, conn) = match imp::db_conn().await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("Connected error: {}", e);
-            return Err(Error::Other("Database connection error".into()));
-        }
-    };
+    // ---------- 共通処理 ----------
+    // DBへの接続を試行
+    let client = connect_to_db().await.unwrap();
 
-    /*
-    共通処理
-    接続タスク実行
-     */
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection err: {}", e);
-        }
-    });
-
-    /* テーブル取得 */
+    // テーブル取得
     let q: String;
     match user {
         // ---------- ユーザー選択あり->指定ユーザーのタスク ----------
@@ -289,10 +227,7 @@ pub async fn show(
                     };
 
                     // ---------- descriptionがNoneなら無にする ----------
-                    let con_description = match description {
-                        Some(d) => d,
-                        None => "説明なし".to_string(),
-                    };
+                    let con_description = description.unwrap_or_else(|| "説明なし".to_string());
 
                     // UserIDに変換
                     // 最終的にembedへ組み込む

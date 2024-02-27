@@ -5,19 +5,15 @@
 // Copyright © 2024 donabe8898. All rights reserved.
 
 use chrono::NaiveDate;
-
 use poise::serenity_prelude::*;
 use poise::*;
-
 use std::time::Duration; // タイムアウト処理用
-
 use tokio;
-
 use tokio_postgres::{tls::NoTlsStream, Client, Connection, Error, Socket};
-
 use super::*;
-use crate::auth::auth;
-type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
+use db::db_conn;
+use crate::Context;
+use crate::db::connect_to_db;
 
 
 /// タスクを1件追加します
@@ -46,40 +42,12 @@ pub async fn add(
     member: Option<serenity::Member>,
     deadline: Option<String>,
 ) -> Result<(), serenity::Error> {
-    // ---------- サーバー認証 ----------
-    if let Some(guild_id) = ctx.guild_id() {
-        let _ = auth(guild_id);
-    } else {
-        let _ = ctx
-            .send(
-                CreateReply::default()
-                    .ephemeral(true)
-                    .content("ギルド内で実行されませんでした"),
-            )
-            .await;
-    }
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
 
-    /*
-    DBへの接続を試行
-
-    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
-    */
-    let (client, conn) = match db_conn().await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("Connected error: {}", e);
-            return Err(serenity::Error::Other("Database connection error".into()));
-        }
-    };
-
-    /* 接続タスク実行 */
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection err: {}", e);
-        }
-    });
+    // ---------- 共通処理 ----------
+    // DBへの接続を試行
+    let client = connect_to_db().await.unwrap();
 
     /*
     タスク登録
@@ -182,40 +150,13 @@ pub async fn remove(
     ctx: Context<'_>,
     task_id: String,
 ) -> Result<(), serenity::Error> {
-    // ---------- サーバー認証 ----------
-    if let Some(guild_id) = ctx.guild_id() {
-        let _ = auth(guild_id);
-    } else {
-        let _ = ctx
-            .send(
-                CreateReply::default()
-                    .ephemeral(true)
-                    .content("ギルド内で実行されませんでした"),
-            )
-            .await;
-    }
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
     // ---------- DB処理 ----------
-    /*
-    DBへの接続を試行
-    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
-    */
-    let (client, conn) = match db_conn().await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("Connected error: {}", e);
-            return Err(serenity::Error::Other("Database connection error".into()));
-        }
-    };
 
-    /* 接続タスク実行 */
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection error: {}", e);
-            eprintln!("コネクションエラー: {}", e);
-        }
-    });
+    // ---------- 共通処理 ----------
+    // DBへの接続を試行
+    let client = connect_to_db().await.unwrap();
 
     // ---------- DB処理おわり ----------
 
@@ -339,40 +280,13 @@ pub async fn status(
     ctx: Context<'_>,
     task_id: String,
 ) -> Result<(), serenity::Error> {
-    // ---------- サーバー認証 ----------
-    if let Some(guild_id) = ctx.guild_id() {
-        let _ = auth(guild_id);
-    } else {
-        let _ = ctx
-            .send(
-                CreateReply::default()
-                    .ephemeral(true)
-                    .content("ギルド内で実行されませんでした"),
-            )
-            .await;
-    }
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
     // ---------- DB処理 ----------
-    /*
-    DBへの接続を試行
-    tokio_postgres::Errorをserenity::Errorで返すことでエラー処理の簡略化と統一化を図る
-    */
-    let (client, conn) = match db_conn().await {
-        Ok(result) => result,
-        Err(e) => {
-            eprintln!("Connected error: {}", e);
-            return Err(serenity::Error::Other("Database connection error".into()));
-        }
-    };
 
-    /* 接続タスク実行 */
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection error: {}", e);
-            eprintln!("コネクションエラー: {}", e);
-        }
-    });
+    // ---------- 共通処理 ----------
+    // DBへの接続を試行
+    let client = connect_to_db().await.unwrap();
 
     // ---------- DB処理おわり ----------
 
@@ -473,22 +387,5 @@ pub async fn status(
     Ok(())
 }
 
-/// データベースへの接続処理
-///
-///
-/// 一定時間立つと接続は解除されるため、切断処理は実装しなくてもOK
-///
-pub async fn db_conn() -> Result<(Client, Connection<Socket, NoTlsStream>), Error> {
-    let (client, conn) = tokio_postgres::Config::new()
-        .user("postgres")
-        .password("password")
-        .host("localhost")
-        .port(5432)
-        .dbname("postgres")
-        .connect(tokio_postgres::NoTls)
-        .await?;
-
-    Ok((client, conn))
-}
 
 

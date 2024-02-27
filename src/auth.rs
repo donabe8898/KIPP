@@ -1,7 +1,10 @@
 //! 認証系の実装
 
+
 use poise::serenity_prelude::{self as serenity, GuildId};
 use std::env;
+use poise::CreateReply;
+use crate::Context;
 
 /// ギルドIDを比較するメソッド
 ///
@@ -13,13 +16,21 @@ use std::env;
 /// Botの読み取る.envファイルのギルドIDと異なる場合はエラーを返す.
 ///
 /// これはBotが他のサーバーに招待されDBの中身（タスク）を見られることを防ぐ目的がある.
-pub fn auth(guild_id: GuildId) -> Result<(), serenity::Error> {
-    // .envからギルドIDとってくる
-    let auth_guild = env::var("GUILD_ID").expect("missing get token");
-    let auth_guild = GuildId::new(auth_guild.parse::<u64>().unwrap());
+///
 
-    if guild_id == auth_guild {
-    } else {
+
+pub async fn auth(ctx: Context<'_>) -> Result<(), serenity::Error> {
+    // ctxからguildid取得
+    let guild_id = ctx.guild_id().unwrap();
+
+    // .envからギルドIDとってくる
+    let env_guild = env::var("GUILD_ID").expect("missing get token");
+    let env_guild = GuildId::new(env_guild.parse::<u64>().unwrap());
+
+
+    // ギルドが違っていた場合
+    if guild_id != env_guild {
+        let _ = ctx.send(CreateReply::default().ephemeral(true).content("ギルド内で実行されませんでした")).await;
         return Err(serenity::Error::Other(
             "This is an unauthorized guild.".into(),
         ));
@@ -27,3 +38,5 @@ pub fn auth(guild_id: GuildId) -> Result<(), serenity::Error> {
 
     Ok(())
 }
+
+
