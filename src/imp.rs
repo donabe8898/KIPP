@@ -1,7 +1,6 @@
 //! DB内のデータを追加・編集・削除する実装
 //!
 //! エラーはすべてserenityのものへ統一化
-
 // Copyright © 2024 donabe8898. All rights reserved.
 
 use chrono::NaiveDate;
@@ -9,9 +8,7 @@ use poise::serenity_prelude::*;
 use poise::*;
 use std::time::Duration; // タイムアウト処理用
 use tokio;
-use tokio_postgres::{tls::NoTlsStream, Client, Connection, Error, Socket};
 use super::*;
-use db::db_conn;
 use crate::Context;
 use crate::db::connect_to_db;
 
