@@ -30,7 +30,7 @@ pub async fn auth(ctx: Context<'_>) -> Result<(), serenity::Error> {
 
     // ギルドが違っていた場合
     if guild_id != env_guild {
-        let _ = ctx.send(CreateReply::default().ephemeral(true).content("ギルド内で実行されませんでした")).await;
+        let _ = ctx.send(CreateReply::default().ephemeral(true).content("⚠ このサーバーでは実行できません")).await;
         return Err(serenity::Error::Other(
             "This is an unauthorized guild.".into(),
         ));

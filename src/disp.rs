@@ -6,6 +6,7 @@ use poise::serenity_prelude::{
 use poise::CreateReply;
 use serenity::model::Timestamp;
 use uuid::{self};
+use chrono::*;
 
 use crate::auth::auth;
 use crate::db::{connect_to_db, db_conn};
@@ -159,6 +160,9 @@ pub async fn showall(
 /// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
 /// 選択されなかったら普通にすべてのタスクを表示
 ///
+/// ## 2024-2-24 機能追加
+/// - 締め切り日が過ぎている進行中のプロジェクトは赤色のEmbedで(超過)と表示される
+///
 /// # 引数
 ///
 /// * `ctx` - コマンド起動時の情報が入ったブツ
@@ -222,7 +226,26 @@ pub async fn show(
                     let status: i16 = row.get("status");
                     let (status, color) = match status {
                         0 => ("完了済み", (0, 0, 0)),
-                        1 => ("進行中", (0, 255, 0)),
+                        // NOTE: 進行中でも日付が過ぎていたら赤色
+                        // 現在時刻を取得
+                        1 => {
+                            let now_dt: DateTime<Local> = Local::now();
+                            println!("{:#?}", now_dt); // DEBUG:
+                            // 比較
+                            let naive_now_dt = now_dt.naive_local().date(); // 現在の日付
+
+                            // 締切日が設定されていない or 締切がまだ
+                            if deadline == None || deadline.unwrap() > naive_now_dt {
+                                ("進行中", (0, 255, 0))
+                            }
+                            // 締め切り過ぎてる
+                            else {
+                                ("進行中（超過）", (255, 0, 0))
+                            }
+                        }
+
+
+                        // 1 => ("進行中", (0, 255, 0)),
                         _ => ("その他", (255, 0, 0)),
                     };
 

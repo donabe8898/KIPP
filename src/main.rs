@@ -1,3 +1,14 @@
+//! # KIPP is an Integrated Project Management Program for Discord
+//!
+//! KIPPはDiscordBotとして起動し, タスク管理を行えるソフトウェアです.
+//!
+//! # リポジトリ
+//! [https://github.com/donabe8898/KIPP]("https://github.com/donabe8898/KIPP")
+//!
+//! # 使い方
+//!
+//! README.md参照
+
 mod auth;
 mod commands;
 mod disp;
