@@ -52,102 +52,159 @@ pub async fn showall(
     // クエリ投げ
     let tables = client.query(&all_tables_query, &[]).await;
 
-    match tables {
+    // 返信用
+    let mut rep_string: String = String::new();
+    // 検索用クエリ
+    let mut queries: Vec<String> = Vec::new();
+    let mut channels_id: Vec<String> = Vec::new();
+
+
+    let res = match tables {
         // ---------- テーブルが帰ってきた場合 ----------
         Ok(tables) => {
-            // ========= ユーザー選択あり =========
-            match user {
-                Some(usr) => {
-                    let usr_id = usr.id.to_string();
+            if let Some(usr) = user {
+                // 戻り値
+                let mut return_str: String = String::new();
+                // ========= ユーザー選択あり =========
+                let usr_id = usr.id.to_string();
 
-                    // 返信用
-                    let mut rep_string: String = String::new();
-
-                    for table in tables {
-                        // チャンネルID
-                        let channel_id: String = table.get("tablename");
-                        // {}が帰ってきたらとばす
-                        if &channel_id == "{}" {
-                            continue;
-                        }
-                        // 検索クエリ
-                        let cnt_query = format!(
-                            "select count(*) from \"{}\" where member=\'{}\'",
-                            channel_id, usr_id
-                        );
-                        // クエリ送信
-                        let count = client.query(&cnt_query, &[]).await.unwrap();
-                        // チャンネル内のタスクを数える
-                        let count: i64 = count[0].get("count");
-                        // --------- 返信
-
-                        let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
-                        match channel_id.to_channel(ctx.http()).await {
-                            Ok(ch) => {
-                                let s = format!("| {} | : {} 件\n", ch, count);
-                                rep_string.push_str(&s);
-                            }
-                            Err(_) => {
-                                let s = format!("| 不明なチャンネル | {}件\n", count);
-                                rep_string.push_str(&s);
-                            }
-                        };
+                for table in tables {
+                    // チャンネルID
+                    let channel_id: String = table.get("tablename");
+                    // {}が帰ってきたらとばす
+                    if &channel_id == "{}" {
+                        continue;
                     }
-                    // ---------- 返信を見せるかどうか ----------
-                    // 原則は自分のみ表示
-                    let is_disp = if let Some(b) = display { !b } else { true };
-                    // ---------- リプライビルダー作成 ----------
-                    let rep = CreateReply::default()
-                        .content(rep_string)
-                        .ephemeral(is_disp);
-                    let _ = ctx.send(rep).await;
+
+                    // 検索クエリ
+                    queries.push(format!(
+                        "select count(*) from \"{}\" where member=\'{}\'",
+                        channel_id, usr_id
+                    ));
+
+                    channels_id.push(channel_id);
+                    // // クエリ送信
+                    // let count = client.query(&cnt_query, &[]).await.unwrap();
+                    // // チャンネル内のタスクを数える
+                    // let count: i64 = count[0].get("count");
+                    // // --------- 返信
+                    //
+                    // let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
+                    // match channel_id.to_channel(ctx.http()).await {
+                    //     Ok(ch) => {
+                    //         let s = format!("| {} | : {} 件\n", ch, count);
+                    //         return_str.push_str(&s);
+                    //     }
+                    //     Err(_) => {
+                    //         let s = format!("| 不明なチャンネル | {}件\n", count);
+                    //         return_str.push_str(&s);
+                    //     }
+                    // };
                 }
+                // ---------- 返信を見せるかどうか ----------
+                // 原則は自分のみ表示
+                // let is_disp = if let Some(b) = display { !b } else { true };
+                // // ---------- リプライビルダー作成 ----------
+                // if rep_string == "" {
+                //     let rep = CreateReply::default()
+                //         .content(rep_string)
+                //         .ephemeral(is_disp);
+                //     let _ = ctx.send(rep).await;
+                // } else {
+                //     let _ = ctx.say("タスクはありません.").await;
+                // }
+            } else {
+                // 戻り値
+                let mut return_str: String = String::new();
                 // ========= ユーザー選択なし =========
-                None => {
-                    // 返信用
-                    let mut rep_string: String = String::new();
-                    for table in tables {
-                        // チャンネルID
-                        let channel_id: String = table.get("tablename");
+                for table in tables {
+                    // チャンネルID
+                    let channel_id: String = table.get("tablename");
 
-                        // {}が帰ってきたらとばす
-                        if &channel_id == "{}" {
-                            continue;
-                        }
-                        // 検索クエリ
-                        let cnt_query = format!("select count(*) from \"{}\";", channel_id);
-                        // クエリ送信
-                        let count = client.query(&cnt_query, &[]).await.unwrap();
-                        // チャンネル内のタスクを数える
-                        let count: i64 = count[0].get("count");
-                        // TODO: 返信
-                        let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
-                        match channel_id.to_channel(ctx.http()).await {
-                            Ok(ch) => {
-                                let s = format!("| {} | : {} 件\n", ch, count);
-                                rep_string.push_str(&s);
-                            }
-                            Err(_) => {
-                                let s = format!("| 不明なチャンネル | {}件\n", count);
-                                rep_string.push_str(&s);
-                            }
-                        };
+                    // {}が帰ってきたらとばす
+                    if &channel_id == "{}" {
+                        continue;
                     }
-                    // ---------- 返信を見せるかどうか ----------
-                    let is_disp = if let Some(b) = display { !b } else { true };
-                    // ---------- リプライビルダー作成 ----------
-                    let rep = CreateReply::default()
-                        .content(rep_string)
-                        .ephemeral(is_disp);
-                    let _ = ctx.send(rep).await;
+                    // 検索クエリ
+                    queries.push(format!("select count(*) from \"{}\";", channel_id));
+
+                    channels_id.push(channel_id);
+                    // // クエリ送信
+                    // let count = client.query(&cnt_query, &[]).await.unwrap();
+                    // // チャンネル内のタスクを数える
+                    // let count: i64 = count[0].get("count");
+                    // // TODO: 返信
+                    // let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
+                    // match channel_id.to_channel(ctx.http()).await {
+                    //     Ok(ch) => {
+                    //         let s = format!("| {} | : {} 件\n", ch, count);
+                    //         return_str.push_str(&s);
+                    //     }
+                    //     Err(_) => {
+                    //         let s = format!("| 不明なチャンネル | {}件\n", count);
+                    //         return_str.push_str(&s);
+                    //     }
+                    // };
                 }
-            };
+
+                // // ---------- 返信を見せるかどうか ----------
+                // let is_disp = if let Some(b) = display { !b } else { true };
+                // // ---------- リプライビルダー作成 ----------
+                // if rep_string == "" {
+                //     let rep = CreateReply::default()
+                //         .content(rep_string)
+                //         .ephemeral(is_disp);
+                //     let _ = ctx.send(rep).await;
+                // } else {
+                //     let _ = ctx.say("タスクはありません.").await;
+                // }
+            }
+
+            // ここに書く
+            let size = queries.len();
+
+            for i in 0..size {
+                // クエリ送信
+                let count = client.query(&queries[i], &[]).await.unwrap();
+                // チャンネル内のタスクを数える
+                let count: i64 = count[0].get("count");
+
+                // --------- 返信 ---------
+                let channel_id = ChannelId::new(channels_id[i].parse::<u64>().unwrap());
+                match channel_id.to_channel(ctx.http()).await {
+                    Ok(ch) => {
+                        let s = format!("| {} | : {} 件\n", ch, count);
+                        rep_string.push_str(&s);
+                    }
+                    Err(_) => {
+                        let s = format!("| 不明なチャンネル | {}件\n", count);
+                        rep_string.push_str(&s);
+                    }
+                };
+            }
+
+            // // ---------- 返信を見せるかどうか ----------
+            let is_disp = if let Some(b) = display { !b } else { true };
+            // ---------- リプライビルダー作成 ----------
+            if rep_string != "" {
+                let rep = CreateReply::default()
+                    .content(rep_string)
+                    .ephemeral(is_disp);
+                let _ = ctx.send(rep).await;
+            }
+            // ギルド内のタスクが0件の場合
+            else {
+                let rep = CreateReply::default()
+                    .content("タスクはありません")
+                    .ephemeral(is_disp);
+                let _ = ctx.send(rep).await;
+            }
         }
         // ---------- テーブルが帰ってこなかった場合（多分無い） ----------
         Err(_) => {
             return Err(Error::Other("Cannot find tasks.!".into()));
         }
-    }
+    };
 
     Ok(())
 }
@@ -230,7 +287,7 @@ pub async fn show(
                         // 現在時刻を取得
                         1 => {
                             let now_dt: DateTime<Local> = Local::now();
-                            println!("{:#?}", now_dt); // DEBUG:
+                            
                             // 比較
                             let naive_now_dt = now_dt.naive_local().date(); // 現在の日付
 
