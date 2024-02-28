@@ -62,6 +62,7 @@ pub async fn showall(
     let res = match tables {
         // ---------- テーブルが帰ってきた場合 ----------
         Ok(tables) => {
+            // ---------- ユーザー選択あり ----------
             if let Some(usr) = user {
                 // 戻り値
                 let mut return_str: String = String::new();
@@ -83,37 +84,10 @@ pub async fn showall(
                     ));
 
                     channels_id.push(channel_id);
-                    // // クエリ送信
-                    // let count = client.query(&cnt_query, &[]).await.unwrap();
-                    // // チャンネル内のタスクを数える
-                    // let count: i64 = count[0].get("count");
-                    // // --------- 返信
-                    //
-                    // let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
-                    // match channel_id.to_channel(ctx.http()).await {
-                    //     Ok(ch) => {
-                    //         let s = format!("| {} | : {} 件\n", ch, count);
-                    //         return_str.push_str(&s);
-                    //     }
-                    //     Err(_) => {
-                    //         let s = format!("| 不明なチャンネル | {}件\n", count);
-                    //         return_str.push_str(&s);
-                    //     }
-                    // };
                 }
-                // ---------- 返信を見せるかどうか ----------
-                // 原則は自分のみ表示
-                // let is_disp = if let Some(b) = display { !b } else { true };
-                // // ---------- リプライビルダー作成 ----------
-                // if rep_string == "" {
-                //     let rep = CreateReply::default()
-                //         .content(rep_string)
-                //         .ephemeral(is_disp);
-                //     let _ = ctx.send(rep).await;
-                // } else {
-                //     let _ = ctx.say("タスクはありません.").await;
-                // }
-            } else {
+            }
+            // ---------- ユーザー選択なし ----------
+            else {
                 // 戻り値
                 let mut return_str: String = String::new();
                 // ========= ユーザー選択なし =========
@@ -129,40 +103,12 @@ pub async fn showall(
                     queries.push(format!("select count(*) from \"{}\";", channel_id));
 
                     channels_id.push(channel_id);
-                    // // クエリ送信
-                    // let count = client.query(&cnt_query, &[]).await.unwrap();
-                    // // チャンネル内のタスクを数える
-                    // let count: i64 = count[0].get("count");
-                    // // TODO: 返信
-                    // let channel_id = ChannelId::new(channel_id.parse::<u64>().unwrap());
-                    // match channel_id.to_channel(ctx.http()).await {
-                    //     Ok(ch) => {
-                    //         let s = format!("| {} | : {} 件\n", ch, count);
-                    //         return_str.push_str(&s);
-                    //     }
-                    //     Err(_) => {
-                    //         let s = format!("| 不明なチャンネル | {}件\n", count);
-                    //         return_str.push_str(&s);
-                    //     }
-                    // };
                 }
 
-                // // ---------- 返信を見せるかどうか ----------
-                // let is_disp = if let Some(b) = display { !b } else { true };
-                // // ---------- リプライビルダー作成 ----------
-                // if rep_string == "" {
-                //     let rep = CreateReply::default()
-                //         .content(rep_string)
-                //         .ephemeral(is_disp);
-                //     let _ = ctx.send(rep).await;
-                // } else {
-                //     let _ = ctx.say("タスクはありません.").await;
-                // }
             }
 
-            // ここに書く
+            // クエリ個数でループさせる
             let size = queries.len();
-
             for i in 0..size {
                 // クエリ送信
                 let count = client.query(&queries[i], &[]).await.unwrap();
@@ -287,7 +233,7 @@ pub async fn show(
                         // 現在時刻を取得
                         1 => {
                             let now_dt: DateTime<Local> = Local::now();
-                            
+
                             // 比較
                             let naive_now_dt = now_dt.naive_local().date(); // 現在の日付
 
