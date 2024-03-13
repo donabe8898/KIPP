@@ -47,6 +47,10 @@ SlashCommand:
 
 # Run
 ## Dockerでの立ち上げ
+
+> [!WARNING]
+> Discord botは`.env`ファイルに記載されるギルド（サーバー）でしか動作しません。
+
 1. `KIPP/docker`で`sudo docker-compose up -d && docker-compose exec postgres bash`してコンテナに入る。postgresはユーザー名なのでお好みで変更可能。
 2. `su postgres`でユーザー切り替え
 3. `psql`コマンドでpostgresに入る
