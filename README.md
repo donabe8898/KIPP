@@ -43,6 +43,9 @@ SlashCommand:
 
 ```
 
+> [!TIP]
+> プロジェクトで`cargo doc --no-deps --open`コマンドを使用してドキュメントを見ることができます。
+
 
 
 # Run
