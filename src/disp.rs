@@ -1,22 +1,17 @@
 //! 表示関係の実装
 
+use chrono::*;
 use poise::serenity_prelude::{
     self as serenity, ChannelId, CreateEmbed, CreateEmbedFooter, Error, UserId,
 };
 use poise::CreateReply;
 use serenity::model::Timestamp;
 use uuid::{self};
-use chrono::*;
 
-use crate::auth::auth;
-use crate::db::{connect_to_db, db_conn};
-use crate::imp;
-
+use crate::db::connect_to_db;
 
 /// 返信に使うコンテキスト
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
-
-
 
 /// チャンネルごとにタスクの数を一覧形式で表示します。
 ///
@@ -58,14 +53,11 @@ pub async fn showall(
     let mut queries: Vec<String> = Vec::new();
     let mut channels_id: Vec<String> = Vec::new();
 
-
-    let res = match tables {
+    let _res = match tables {
         // ---------- テーブルが帰ってきた場合 ----------
         Ok(tables) => {
             // ---------- ユーザー選択あり ----------
             if let Some(usr) = user {
-                // 戻り値
-                let mut return_str: String = String::new();
                 // ========= ユーザー選択あり =========
                 let usr_id = usr.id.to_string();
 
@@ -88,8 +80,6 @@ pub async fn showall(
             }
             // ---------- ユーザー選択なし ----------
             else {
-                // 戻り値
-                let mut return_str: String = String::new();
                 // ========= ユーザー選択なし =========
                 for table in tables {
                     // チャンネルID
@@ -104,7 +94,6 @@ pub async fn showall(
 
                     channels_id.push(channel_id);
                 }
-
             }
 
             // クエリ個数でループさせる
@@ -154,8 +143,6 @@ pub async fn showall(
 
     Ok(())
 }
-
-
 
 /// チャンネルに属すタスクを表示
 ///
@@ -247,7 +234,6 @@ pub async fn show(
                             }
                         }
 
-
                         // 1 => ("進行中", (0, 255, 0)),
                         _ => ("その他", (255, 0, 0)),
                     };
@@ -311,7 +297,6 @@ pub async fn show(
             let _ = ctx.reply("タスクはありません\u{2615}").await;
         }
     };
-
 
     Ok(())
 }

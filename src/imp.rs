@@ -3,15 +3,13 @@
 //! エラーはすべてserenityのものへ統一化
 // Copyright © 2024 donabe8898. All rights reserved.
 
+use super::*;
+use crate::db::connect_to_db;
+use crate::Context;
 use chrono::NaiveDate;
 use poise::serenity_prelude::*;
 use poise::*;
 use std::time::Duration; // タイムアウト処理用
-use tokio;
-use super::*;
-use crate::Context;
-use crate::db::connect_to_db;
-
 
 /// タスクを1件追加します
 ///
@@ -127,7 +125,9 @@ pub async fn add(
     };
 
     /* 完了メッセージ */
-    let rep = CreateReply::default().ephemeral(true).content("タスクを登録しました");
+    let rep = CreateReply::default()
+        .ephemeral(true)
+        .content("タスクを登録しました");
 
     let _ = ctx.send(rep).await;
     Ok(())
@@ -143,10 +143,7 @@ pub async fn add(
 /// * `ctx` - コマンド起動時の情報が入ったブツ
 /// * `task_id` - タスクのID (UUIDv4)
 
-pub async fn remove(
-    ctx: Context<'_>,
-    task_id: String,
-) -> Result<(), serenity::Error> {
+pub async fn remove(ctx: Context<'_>, task_id: String) -> Result<(), serenity::Error> {
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
     // ---------- DB処理 ----------
@@ -172,7 +169,9 @@ pub async fn remove(
     let rep2 = CreateMessage::default().components(vec![buttons]);
 
     // ---------- 削除しますか？？？？ ----------
-    let how_del = CreateReply::default().ephemeral(true).content("本当に削除しますか？");
+    let how_del = CreateReply::default()
+        .ephemeral(true)
+        .content("本当に削除しますか？");
     let _ = ctx.send(how_del).await;
 
     let h = channel_id.send_message(ctx, rep2).await;
@@ -262,7 +261,6 @@ pub async fn remove(
     Ok(())
 }
 
-
 /// タスクのステータスを変更します
 ///
 /// ステータスをどれに変更するかのプルダウンメニューが表示される.
@@ -273,19 +271,12 @@ pub async fn remove(
 /// * `ctx` - コマンド起動時の情報が入ったブツ
 /// * `task_id` - タスクのID (UUIDv4)
 
-pub async fn status(
-    ctx: Context<'_>,
-    task_id: String,
-) -> Result<(), serenity::Error> {
+pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::Error> {
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
-    // ---------- DB処理 ----------
 
-    // ---------- 共通処理 ----------
     // DBへの接続を試行
     let client = connect_to_db().await.unwrap();
-
-    // ---------- DB処理おわり ----------
 
     // ---------- ステータスリスト作成 ----------
     // (emoji->今のとこなし, lavel, value)
@@ -383,6 +374,3 @@ pub async fn status(
     }
     Ok(())
 }
-
-
-

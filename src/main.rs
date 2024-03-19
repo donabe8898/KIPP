@@ -11,10 +11,10 @@
 
 mod auth;
 mod commands;
+mod db;
 mod disp;
 mod imp;
 mod support;
-mod db;
 
 use poise::serenity_prelude as serenity;
 use std::env;

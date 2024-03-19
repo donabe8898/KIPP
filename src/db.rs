@@ -1,14 +1,11 @@
 //! postgres関係の実装
 
-use chrono::NaiveDate;
 use poise::serenity_prelude::*;
-use poise::*;
-use std::time::Duration;
-// タイムアウト処理用
-use tokio;
-use tokio_postgres::{tls::NoTlsStream, Client, Connection, Error, Socket};
-use super::*;
 
+// タイムアウト処理用
+use super::*;
+use tokio;
+use tokio_postgres::{Client, Error};
 
 /// データベースへの接続を確立する処理
 ///
@@ -34,7 +31,6 @@ pub async fn db_conn() -> Result<Client, Error> {
     Ok(client)
 }
 
-
 /// Postgresへ接続する
 pub async fn connect_to_db() -> Result<Client, serenity::Error> {
     match db_conn().await {
@@ -45,4 +41,3 @@ pub async fn connect_to_db() -> Result<Client, serenity::Error> {
         }
     }
 }
-

@@ -1,25 +1,19 @@
 //! 全コマンドのrootモジュール
 
-
-
-use poise::serenity_prelude::{
-    self as serenity, ChannelId, CreateEmbed, CreateEmbedFooter, Error, UserId,
-};
-use poise::CreateReply;
-use serenity::model::Timestamp;
-use uuid::{self};
 use crate::auth::auth;
 use crate::disp;
 use crate::disp::Context;
 use crate::imp;
 use crate::support;
-
+use poise::serenity_prelude::{self as serenity, Error};
 
 /// チャンネルごとにタスクの数を一覧形式で表示します。
 #[poise::command(slash_command)]
-pub async fn showall(ctx: Context<'_>,
-                     #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
-                     #[description = "メッセージを自分以外にも表示"] display: Option<bool>) -> Result<(), Error> {
+pub async fn showall(
+    ctx: Context<'_>,
+    #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
+    #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
+) -> Result<(), Error> {
     // ---------- サーバー認証 ----------
     let _ = auth(ctx).await;
 
@@ -29,9 +23,11 @@ pub async fn showall(ctx: Context<'_>,
 
 /// チャンネルに属すタスクを表示
 #[poise::command(slash_command)]
-pub async fn show(ctx: Context<'_>,
-                  #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
-                  #[description = "メッセージを自分以外にも表示"] display: Option<bool>, ) -> Result<(), serenity::Error> {
+pub async fn show(
+    ctx: Context<'_>,
+    #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
+    #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
+) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     let _ = auth(ctx).await;
 
@@ -80,7 +76,6 @@ pub async fn status(
     let _ = imp::status(ctx, task_id).await;
     Ok(())
 }
-
 
 /// ヘルプの表示
 #[poise::command(slash_command)]

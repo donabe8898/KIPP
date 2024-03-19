@@ -7,8 +7,6 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use crate::Context;
-pub struct Data {}
-
 
 /// ヘルプの表示
 ///
@@ -32,7 +30,6 @@ pub async fn help(ctx: Context<'_>) -> Result<(), Error> {
     let _ = ctx.send(rep_builder).await;
     Ok(())
 }
-
 
 /// バージョン情報
 ///
