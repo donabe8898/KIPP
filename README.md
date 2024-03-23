@@ -75,3 +75,5 @@ SlashCommand:
 # License
 MIT License
 
+# Author
+- donabe: ![https://donabe8898.dev]("https://donabe8898.dev")
