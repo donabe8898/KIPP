@@ -7,6 +7,20 @@ use crate::imp;
 use crate::support;
 use poise::serenity_prelude::{self as serenity, Error};
 
+// # db.rs
+/// 不要なテーブルの削除
+#[poise::command(slash_command)]
+pub async fn clean(ctx: Context<'_>) -> Result<(), Error> {
+    // ---------- サーバー認証 ----------
+    let _ = auth(ctx).await?;
+
+    // TODO: ここ実装したやつ置く
+
+    Ok(())
+}
+
+/// # disp.rs
+
 /// チャンネルごとにタスクの数を一覧形式で表示します。
 #[poise::command(slash_command)]
 pub async fn showall(
@@ -34,6 +48,8 @@ pub async fn show(
     let _ = disp::show(ctx, user, display).await;
     Ok(())
 }
+
+// # imp.rs
 
 /// タスクを1件追加します
 #[poise::command(slash_command)]
@@ -76,6 +92,8 @@ pub async fn status(
     let _ = imp::status(ctx, task_id).await;
     Ok(())
 }
+
+// # support.rs
 
 /// ヘルプの表示
 #[poise::command(slash_command)]

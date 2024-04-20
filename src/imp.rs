@@ -374,3 +374,25 @@ pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
     }
     Ok(())
 }
+
+/// チャンネル削除等で残ったテーブルを削除する処理コマンド
+pub async fn clean(ctx: Context<'_>) -> Result<(), serenity::Error> {
+    /* コマンドを実行したチャンネルのIDを取得 */
+    let channel_id = ctx.channel_id();
+    // ---------- DB処理 ----------
+
+    // ---------- 共通処理 ----------
+    // DBへの接続を試行
+    let client = connect_to_db().await.unwrap();
+
+    // ---------- DB処理おわり ----------
+
+    // TODO: クエリ
+    let query = "";
+
+    // TODO: テーブルIDのチャンネルが存在するかどうかCheck
+
+    // TODO: 存在しなかったらテーブル削除
+
+    Ok(())
+}
