@@ -293,8 +293,12 @@ pub async fn show(
                 let _ = ctx.send(rep_builder).await;
             }
         }
+        // DB内にテーブルが存在しない場合はエラーとなるので以下が実行される
         Err(_) => {
-            let _ = ctx.reply("タスクはありません\u{2615}").await;
+            let rep_builder = CreateReply::default()
+                .ephemeral(is_disp)
+                .content("タスクはありません\u{2615}");
+            let _ = ctx.send(rep_builder).await;
         }
     };
 

@@ -45,6 +45,7 @@ async fn main() -> Result<(), Error> {
                 commands::status(),
                 commands::add(),
                 commands::remove(),
+                commands::clean(),
                 commands::help(),
                 commands::version(),
             ],

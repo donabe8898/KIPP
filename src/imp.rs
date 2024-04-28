@@ -174,6 +174,7 @@ pub async fn remove(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
         .content("本当に削除しますか？");
     let _ = ctx.send(how_del).await;
 
+    // ---------- ボタンハンドル送信 ----------
     let h = channel_id.send_message(ctx, rep2).await;
 
     let handle = match h {
@@ -375,17 +376,28 @@ pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
     Ok(())
 }
 
-/// チャンネル削除等で残ったテーブルを削除する処理コマンド
+/// TODO: チャンネル削除等で残ったテーブルを削除する処理コマンド
 pub async fn clean(ctx: Context<'_>) -> Result<(), serenity::Error> {
     /* コマンドを実行したチャンネルのIDを取得 */
     let channel_id = ctx.channel_id();
-    // ---------- DB処理 ----------
 
-    // ---------- 共通処理 ----------
     // DBへの接続を試行
     let client = connect_to_db().await.unwrap();
 
-    // ---------- DB処理おわり ----------
+    // ギルドオブジェクト取得
+    let guild_id: GuildId = ctx.guild_id().unwrap();
+    let guild = match guild_id.to_guild_cached(ctx.cache()) {
+        Some(guild) => guild,
+        None => {
+            return Err(serenity::Error::Other("ギルドの取得に失敗".into()));
+        }
+    };
+    // ギルド内の全チャンネルID取得
+    let mut channels: Vec<ChannelId> = Vec::new();
+    for (key, _) in &guild.channels {
+        channels.push(*key);
+    }
+    println!("{:#?}", channels);
 
     // TODO: クエリ
     let query = "";

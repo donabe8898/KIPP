@@ -8,16 +8,6 @@ use crate::support;
 use poise::serenity_prelude::{self as serenity, Error};
 
 // # db.rs
-/// 不要なテーブルの削除
-#[poise::command(slash_command)]
-pub async fn clean(ctx: Context<'_>) -> Result<(), Error> {
-    // ---------- サーバー認証 ----------
-    let _ = auth(ctx).await?;
-
-    // TODO: ここ実装したやつ置く
-
-    Ok(())
-}
 
 /// # disp.rs
 
@@ -90,6 +80,16 @@ pub async fn status(
     let _ = auth(ctx).await;
 
     let _ = imp::status(ctx, task_id).await;
+    Ok(())
+}
+
+/// テーブルの整理
+#[poise::command(slash_command)]
+pub async fn clean(ctx: Context<'_>) -> Result<(), Error> {
+    // ---------- サーバー認証 ----------
+    let _ = auth(ctx).await;
+
+    let _ = imp::clean(ctx).await;
     Ok(())
 }
 
