@@ -2,10 +2,13 @@
 
 use crate::auth::auth;
 use crate::disp;
-use crate::disp::Context;
+
 use crate::imp;
 use crate::support;
+use poise::parse_slash_args;
 use poise::serenity_prelude::{self as serenity, Error};
+
+type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
 // # db.rs
 
@@ -70,6 +73,16 @@ pub async fn remove(
     Ok(())
 }
 
+/// テーブルの整理
+#[poise::command(slash_command)]
+pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), Error> {
+    // ---------- サーバー認証 ----------
+    let _ = auth(ctx).await;
+
+    let _ = imp::clean(ctx.clone(), password).await;
+    Ok(())
+}
+
 /// タスクのステータスを変更します
 #[poise::command(slash_command)]
 pub async fn status(
@@ -80,16 +93,6 @@ pub async fn status(
     let _ = auth(ctx).await;
 
     let _ = imp::status(ctx, task_id).await;
-    Ok(())
-}
-
-/// テーブルの整理
-#[poise::command(slash_command)]
-pub async fn clean(ctx: Context<'_>) -> Result<(), Error> {
-    // ---------- サーバー認証 ----------
-    let _ = auth(ctx).await;
-
-    let _ = imp::clean(ctx).await;
     Ok(())
 }
 

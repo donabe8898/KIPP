@@ -6,7 +6,7 @@ use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-use crate::Context;
+type Context<'a> = poise::Context<'a, super::Data, Error>;
 
 /// ヘルプの表示
 ///

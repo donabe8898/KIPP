@@ -4,12 +4,16 @@
 // Copyright © 2024 donabe8898. All rights reserved.
 
 use super::*;
+// use crate::auth::auth;
 use crate::db::connect_to_db;
-use crate::Context;
+// use crate::Context;
 use chrono::NaiveDate;
+// use poise::serenity_prelude::model::guild;
 use poise::serenity_prelude::*;
 use poise::*;
 use std::time::Duration; // タイムアウト処理用
+
+pub type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 
 /// タスクを1件追加します
 ///
@@ -377,34 +381,196 @@ pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
 }
 
 /// TODO: チャンネル削除等で残ったテーブルを削除する処理コマンド
-pub async fn clean(ctx: Context<'_>) -> Result<(), serenity::Error> {
-    /* コマンドを実行したチャンネルのIDを取得 */
-    let channel_id = ctx.channel_id();
+/// __注意!__: 非アクティブのスレッドも削除される為, 定期的にスレッドの活性化をおすすめします.
+///
+/// # 引数
+///
+/// * `ctx` - コマンド起動時の情報が入ったブツ
+/// * `password` - 管理者用パスワード
+pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), serenity::Error> {
+    // パスワード確認
+    match auth::passwd(ctx, password).await {
+        Ok(_) => {}
+        Err(_) => {
+            let rep = CreateReply::default()
+                .content("パスワードが違います")
+                .ephemeral(true);
+            let _ = ctx.send(rep).await;
+            return Err(serenity::Error::Other("削除できませんでした".into()));
+        }
+    }
 
     // DBへの接続を試行
     let client = connect_to_db().await.unwrap();
 
     // ギルドオブジェクト取得
+    // WARNING: この辺怪しい
+    // TODO: 修正必須
     let guild_id: GuildId = ctx.guild_id().unwrap();
-    let guild = match guild_id.to_guild_cached(ctx.cache()) {
-        Some(guild) => guild,
-        None => {
-            return Err(serenity::Error::Other("ギルドの取得に失敗".into()));
+
+    let http = ctx.clone().http();
+    let channels = guild_id.channels(http).await?;
+    let threads = guild_id.get_active_threads(http).await?;
+
+    // let cache = ctx.cache().clone();
+    // let guild = match guild_id.to_guild_cached(&cache) {
+    //     Some(guild) => guild,
+    //     None => {
+    //         return Err(serenity::Error::Other("ギルドの取得に失敗".into()));
+    //     }
+    // };
+
+    // ギルド内の全チャンネルID取得
+    // テキストチャンネルとスレッドのまとめ
+    let mut threds: Vec<String> = Vec::new();
+    for (key, _) in &channels {
+        threds.push(key.to_string());
+    }
+    for th in &threads.threads {
+        threds.push(th.id.to_string());
+    }
+
+    // println!("{:#?}\n{:#?}", chs, threds);
+
+    // クエリ
+    // DB内のすべてのテーブル名を取得 "{}"はあとで除く
+    let all_tables_query = "select tablename from pg_tables
+    where schemaname not in('pg_catalog','information_schema')
+    order by tablename;"
+        .to_string();
+
+    // クエリ投げ
+    let tables = client.query(&all_tables_query, &[]).await;
+
+    // クエリ失敗したら削除処理に移行しない
+    // クエリのエラー処理と同時にテーブルをVec<String>へ
+    let tables = match tables {
+        Ok(tables) => {
+            let mut tbs: Vec<String> = Vec::new();
+            for tb in tables {
+                let tb_chid: String = tb.get("tablename");
+                // {}が帰ってきたらとばす
+                if &tb_chid == "{}" {
+                    continue;
+                }
+
+                tbs.push(tb_chid);
+            }
+            // string化したテーブルを返す
+            tbs
+        }
+        Err(_e) => {
+            return Err(serenity::Error::Other("削除できませんでした".into()));
         }
     };
-    // ギルド内の全チャンネルID取得
-    let mut channels: Vec<ChannelId> = Vec::new();
-    for (key, _) in &guild.channels {
-        channels.push(*key);
+
+    // テーブルIDのチャンネルorスレッドが存在しなければ削除処理
+    // NOTE: tables: DB内のチャンネルID
+    // NOTE: chs, threds: discord鯖内のチャンネルID
+    // 削除カウンター int
+    let mut count: u64 = 0;
+
+    // 1. 探索
+    for tb in &tables {
+        let mut is_find = false;
+        for id in &threds {
+            if tb == id {
+                is_find = true;
+                break;
+            }
+        }
+        if !is_find {
+            // TODO: 削除処理
+            let delete_query = format!("drop table \"{}\";", tb);
+            // println!("droped table {}", tb);
+            let _ = client.query(&delete_query, &[]).await;
+            count += 1;
+        }
     }
-    println!("{:#?}", channels);
 
-    // TODO: クエリ
-    let query = "";
-
-    // TODO: テーブルIDのチャンネルが存在するかどうかCheck
-
-    // TODO: 存在しなかったらテーブル削除
+    // 削除した件数を返信
+    if 0 < count {
+        let rep = CreateReply::default()
+            .content(format!("タスクを{}件削除しました", count))
+            .ephemeral(true);
+        let _ = ctx.send(rep).await;
+    } else {
+        let rep = CreateReply::default()
+            .content("タスクを削除しませんでした")
+            .ephemeral(true);
+        let _ = ctx.send(rep).await;
+    }
 
     Ok(())
 }
+/*
+let _res = match tables {
+        // テーブルが返ってきた処理
+        Ok(tables) => {
+            // 削除カウンター int
+            let mut count: u64 = 0;
+
+            // チャンネルで探索
+            for table in tables {
+                let mut is_find = false;
+                for id in chs {
+                    // テーブルのチャンネルID
+                    let tb_chid: String = table.get("tablename");
+                    // {}が帰ってきたらとばす
+                    if &tb_chid == "{}" {
+                        continue;
+                    }
+                    if &tb_chid == &id {
+                        is_find = true;
+                        break;
+                    }
+                }
+                if is_find {
+                    let delete_query = format!("drop table \"{}\";", table);
+                    println!("droped table {}",);
+                    let _ = client.query(&delete_query, &[]);
+                    count += 1;
+                }
+            }
+            // スレッドで探索
+            for id in threds {
+                let mut is_find = false;
+                for table in &tables {
+                    // テーブルのチャンネルID
+                    let tb_chid: String = table.get("tablename");
+                    // {}が帰ってきたらとばす
+                    if &tb_chid == "{}" {
+                        continue;
+                    }
+                    if &tb_chid == &id {
+                        is_find = true;
+                        break;
+                    }
+                }
+                if is_find {
+                    let delete_query = format!("drop table \"{}\";", id);
+                    println!("droped table {}", id);
+                    let _ = client.query(&delete_query, &[]);
+                    count += 1;
+                }
+            }
+
+            // 削除した件数を返信
+            if 0 < count {
+                let rep = CreateReply::default()
+                    .content(format!("タスクを{}件削除しました", count))
+                    .ephemeral(true);
+                let _ = ctx.send(rep).await;
+            } else {
+                let rep = CreateReply::default()
+                    .content("タスクを削除しませんでした")
+                    .ephemeral(true);
+                let _ = ctx.send(rep).await;
+            }
+        }
+        // テーブルが返ってこなかった処理
+        Err(_) => {
+            return Err(serenity::Error::Other("削除できませんでした".into()));
+        }
+    };
+*/

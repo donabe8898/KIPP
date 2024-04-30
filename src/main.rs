@@ -26,7 +26,7 @@ pub struct Data {}
 // エラーハンドル用
 //他のモジュールでも使いまわします
 type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, serenity::Error>;
+// type Context<'a> = poise::Context<'a, Data, serenity::Error>;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
