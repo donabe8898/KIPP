@@ -380,8 +380,9 @@ pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
     Ok(())
 }
 
-/// TODO: チャンネル削除等で残ったテーブルを削除する処理コマンド
-/// __注意!__: 非アクティブのスレッドも削除される為, 定期的にスレッドの活性化をおすすめします.
+/// チャンネル削除等で残ったテーブルを削除する処理コマンド
+///
+/// __*注意!*__: 非アクティブのスレッドも削除される為, 定期的にスレッドの活性化をおすすめします.
 ///
 /// # 引数
 ///
@@ -405,7 +406,6 @@ pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), serenity::E
 
     // ギルドオブジェクト取得
     // WARNING: この辺怪しい
-    // TODO: 修正必須
     let guild_id: GuildId = ctx.guild_id().unwrap();
 
     let http = ctx.clone().http();
@@ -470,7 +470,7 @@ pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), serenity::E
     // 削除カウンター int
     let mut count: u64 = 0;
 
-    // 1. 探索
+    // 1. 探索して削除
     for tb in &tables {
         let mut is_find = false;
         for id in &threds {
@@ -480,9 +480,7 @@ pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), serenity::E
             }
         }
         if !is_find {
-            // TODO: 削除処理
             let delete_query = format!("drop table \"{}\";", tb);
-            // println!("droped table {}", tb);
             let _ = client.query(&delete_query, &[]).await;
             count += 1;
         }

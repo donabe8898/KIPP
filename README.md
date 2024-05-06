@@ -28,20 +28,25 @@ SlashCommand:
 
     # タスク削除
     /remove  [task_id]
-        - task_id <text> : タスクのUUID
+        - task_id <text>  : タスクのUUID
 
     # タスクのステータスを変更
     /status  [task_id]
-        - task_id <text> : タスクのUUID
+        - task_id <text>  : タスクのUUID
+
+    # 不明なレコードを削除（管理者用コマンド）
+    /clean [password]
+        - password <text> : 設定したパスワード
 
     # ギルド内のタスク数を表示
     /showall {member} {display}
-        - member <User>  : 担当者
-        - display <bool> : 他の人にも見せる
+        - member <User>   : 担当者
+        - display <bool>  : 他の人にも見せる
 
     /show  {member} {display}
-        - member <User>  : 担当者
-        - display <bool> : 他の人にも見せる
+        - member <User>   : 担当者
+        - display <bool>  : 他の人にも見せる
+
 
 ```
 

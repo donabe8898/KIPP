@@ -43,7 +43,14 @@ pub async fn auth(ctx: Context<'_>) -> Result<(), serenity::Error> {
     Ok(())
 }
 
-// TODO: password認証が必要なコマンドの実装
+/// password認証が必要なコマンドの実装
+///
+/// # 引数
+/// * `password` - 入力されたパスワード
+///
+/// パスワードを要求するスラッシュコマンドに利用する
+///
+/// 入力された引数と照らしあわせる文字列は`.env`ファイルの`PASSWORD=`に記述
 pub async fn passwd(ctx: Context<'_>, password: String) -> Result<(), serenity::Error> {
     let check_pass = env::var("PASSWORD").expect("missing get token");
     if password != check_pass {

@@ -3,7 +3,7 @@
 //! KIPPはDiscordBotとして起動し, タスク管理を行えるソフトウェアです.
 //!
 //! # リポジトリ
-//! [https://github.com/donabe8898/KIPP]("https://github.com/donabe8898/KIPP")
+//! [https://github.com/donabe8898/KIPP](https://github.com/donabe8898/KIPP)
 //!
 //! # 使い方
 //!
