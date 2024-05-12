@@ -157,11 +157,12 @@ pub async fn showall(
 ///
 /// * `ctx` - コマンド起動時の情報が入ったブツ
 /// * `user` - ユーザーを限定して出力させる場合は入力
+/// * `is_done_print` - 完了済みのタスクを表示させる default: false
 /// * `display` - 自分だけのメッセージとして表示させる場合は`true`
-
 pub async fn show(
     ctx: Context<'_>,
     user: Option<serenity::User>,
+    is_done_print: Option<bool>,
     display: Option<bool>,
 ) -> Result<(), Error> {
     // コマンドを実行したチャンネルID
@@ -191,6 +192,12 @@ pub async fn show(
     // ---------- 返信を見せるかどうか ----------
     // 原則は自分のみ表示
     let is_disp = if let Some(b) = display { !b } else { true };
+    let is_done_print = if let Some(b) = is_done_print {
+        !b
+    } else {
+        // 既定値はfalse
+        false
+    };
 
     let rows = client.query(&q, &[]).await;
     match rows {
@@ -202,23 +209,19 @@ pub async fn show(
                 let mut task_embeds = Vec::new();
                 for row in rows {
                     // ---------- まずはrowから情報を抜き出す ----------
-                    // タスクID
-                    let task_id = row.get::<&str, uuid::Uuid>("id").to_string();
-                    // タスク名
-                    let task_name: String = row.get("task_name");
-                    // 概要
-                    let description: Option<String> = row.get("description");
-                    // 担当者
-                    let member: Option<String> = row.get("member");
-                    // 〆切日
-                    let deadline: Option<chrono::NaiveDate> = row.get("deadline");
-                    // ステータス
-                    let status: i16 = row.get("status");
+                    let task_id = row.get::<&str, uuid::Uuid>("id").to_string(); // タスクID
+                    let task_name: String = row.get("task_name"); // タスク名
+                    let description: Option<String> = row.get("description"); // 概要
+                    let member: Option<String> = row.get("member"); // 担当者
+                    let deadline: Option<chrono::NaiveDate> = row.get("deadline"); // 〆切日
+                    let status: i16 = row.get("status"); // ステータス
+
                     let (status, color) = match status {
                         0 => ("完了済み", (0, 0, 0)),
+                        1 => ("未着手", (0, 0, 0)),
                         // NOTE: 進行中でも日付が過ぎていたら赤色
                         // 現在時刻を取得
-                        1 => {
+                        2 => {
                             let now_dt: DateTime<Local> = Local::now();
 
                             // 比較
@@ -266,6 +269,7 @@ pub async fn show(
                         "〆切はありません".to_string()
                     };
 
+                    // TODO: 完了済みを表示させなくする
                     let embed = CreateEmbed::default()
                         .title(task_name)
                         .description(format!("{}", con_description))

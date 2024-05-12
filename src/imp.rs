@@ -34,6 +34,7 @@ pub type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 /// * `member` - タスクの担当者を決める場合に入力
 /// * `deadline` - タスクの期限日を設定する場合は入力
 ///
+
 pub async fn add(
     ctx: Context<'_>,
     task_name: String,
@@ -286,8 +287,10 @@ pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
     // ---------- ステータスリスト作成 ----------
     // (emoji->今のとこなし, lavel, value)
     // ---------- まずは項目の作成 ----------
+    // TODO: 未着手1と進行中2を実装
     let select_options = vec![
-        CreateSelectMenuOption::new("進行中", "1"),
+        CreateSelectMenuOption::new("進行中", "2"),
+        CreateSelectMenuOption::new("未着手", "1"),
         CreateSelectMenuOption::new("完了済み", "0"),
     ];
 
@@ -412,14 +415,6 @@ pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), serenity::E
     let channels = guild_id.channels(http).await?;
     let threads = guild_id.get_active_threads(http).await?;
 
-    // let cache = ctx.cache().clone();
-    // let guild = match guild_id.to_guild_cached(&cache) {
-    //     Some(guild) => guild,
-    //     None => {
-    //         return Err(serenity::Error::Other("ギルドの取得に失敗".into()));
-    //     }
-    // };
-
     // ギルド内の全チャンネルID取得
     // テキストチャンネルとスレッドのまとめ
     let mut threds: Vec<String> = Vec::new();
@@ -501,74 +496,3 @@ pub async fn clean(ctx: Context<'_>, password: String) -> Result<(), serenity::E
 
     Ok(())
 }
-/*
-let _res = match tables {
-        // テーブルが返ってきた処理
-        Ok(tables) => {
-            // 削除カウンター int
-            let mut count: u64 = 0;
-
-            // チャンネルで探索
-            for table in tables {
-                let mut is_find = false;
-                for id in chs {
-                    // テーブルのチャンネルID
-                    let tb_chid: String = table.get("tablename");
-                    // {}が帰ってきたらとばす
-                    if &tb_chid == "{}" {
-                        continue;
-                    }
-                    if &tb_chid == &id {
-                        is_find = true;
-                        break;
-                    }
-                }
-                if is_find {
-                    let delete_query = format!("drop table \"{}\";", table);
-                    println!("droped table {}",);
-                    let _ = client.query(&delete_query, &[]);
-                    count += 1;
-                }
-            }
-            // スレッドで探索
-            for id in threds {
-                let mut is_find = false;
-                for table in &tables {
-                    // テーブルのチャンネルID
-                    let tb_chid: String = table.get("tablename");
-                    // {}が帰ってきたらとばす
-                    if &tb_chid == "{}" {
-                        continue;
-                    }
-                    if &tb_chid == &id {
-                        is_find = true;
-                        break;
-                    }
-                }
-                if is_find {
-                    let delete_query = format!("drop table \"{}\";", id);
-                    println!("droped table {}", id);
-                    let _ = client.query(&delete_query, &[]);
-                    count += 1;
-                }
-            }
-
-            // 削除した件数を返信
-            if 0 < count {
-                let rep = CreateReply::default()
-                    .content(format!("タスクを{}件削除しました", count))
-                    .ephemeral(true);
-                let _ = ctx.send(rep).await;
-            } else {
-                let rep = CreateReply::default()
-                    .content("タスクを削除しませんでした")
-                    .ephemeral(true);
-                let _ = ctx.send(rep).await;
-            }
-        }
-        // テーブルが返ってこなかった処理
-        Err(_) => {
-            return Err(serenity::Error::Other("削除できませんでした".into()));
-        }
-    };
-*/
