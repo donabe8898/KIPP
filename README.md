@@ -4,7 +4,7 @@ KIPPはDiscordと上手に統合するプロジェクト管理プログラムで
 
 - 要するにタスク管理Botなので、TODOアプリとしても使えます.
 
-Repository: ![https://github.com/donabe8898/KIPP]("https://github.com/donabe8898/KIPP")
+Repository: [https://github.com/donabe8898/KIPP]("https://github.com/donabe8898/KIPP")
 
 # Usage
 ```
@@ -81,4 +81,4 @@ SlashCommand:
 MIT License
 
 # Author
-- donabe: [https://donabe8898.dev]("https://donabe8898.dev")
+- donabe: [https://donabe8898.dev](https://donabe8898.dev)
