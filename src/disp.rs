@@ -216,6 +216,8 @@ pub async fn show(
                     let deadline: Option<chrono::NaiveDate> = row.get("deadline"); // 〆切日
                     let status: i16 = row.get("status"); // ステータス
 
+                    // TODO: 完了済みタスクを非表示にさせる実装
+                    // continueで回す
                     let (status, color) = match status {
                         0 => ("完了済み", (0, 0, 0)),
                         1 => ("未着手", (0, 0, 0)),

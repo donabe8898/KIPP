@@ -287,7 +287,6 @@ pub async fn status(ctx: Context<'_>, task_id: String) -> Result<(), serenity::E
     // ---------- ステータスリスト作成 ----------
     // (emoji->今のとこなし, lavel, value)
     // ---------- まずは項目の作成 ----------
-    // TODO: 未着手1と進行中2を実装
     let select_options = vec![
         CreateSelectMenuOption::new("進行中", "2"),
         CreateSelectMenuOption::new("未着手", "1"),

@@ -34,11 +34,12 @@ pub async fn show(
     ctx: Context<'_>,
     #[description = "ユーザーを選択（任意）"] user: Option<serenity::User>,
     #[description = "メッセージを自分以外にも表示"] display: Option<bool>,
+    #[description = "完了タスクを非表示"] is_done_print: Option<bool>,
 ) -> Result<(), serenity::Error> {
     // ---------- サーバー認証 ----------
     let _ = auth(ctx).await;
 
-    let _ = disp::show(ctx, user, display).await;
+    let _ = disp::show(ctx, user, is_done_print, display).await;
     Ok(())
 }
 
