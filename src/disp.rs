@@ -13,18 +13,11 @@ use crate::db::connect_to_db;
 /// 返信に使うコンテキスト
 pub type Context<'a> = poise::Context<'a, super::Data, Error>;
 
-/// チャンネルごとにタスクの数を一覧形式で表示します。
-///
-///
-/// ユーザーを選択すると、そのユーザーが担当しているタスクの表示を行う。
-/// 選択されなかったら普通にすべてのタスクを表示
-///
-/// # 引数
-///
-/// * `ctx` - コマンド起動時の情報が入ったブツ
-/// * `user` - ユーザーを限定して出力させる場合は入力
-/// * `display` - 自分だけのメッセージとして表示させる場合は`true`
-///
+/*
+    TODO: showall, showのリファクタ
+    - ドキュメンテーションコメントのために分割したモジュールを再統合
+*/
+
 pub async fn showall(
     ctx: Context<'_>,
     user: Option<serenity::User>,

@@ -35,6 +35,10 @@ pub type Context<'a> = poise::Context<'a, super::Data, serenity::Error>;
 /// * `deadline` - タスクの期限日を設定する場合は入力
 ///
 
+/*
+    TODO: add, remove, cleanのリファクタ
+    - ドキュメンテーションコメントのために分割したモジュールを再統合
+*/
 pub async fn add(
     ctx: Context<'_>,
     task_name: String,

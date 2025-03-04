@@ -12,6 +12,11 @@ type Context<'a> = poise::Context<'a, super::Data, Error>;
 ///
 /// help.txtの中身をmarkdown形式で送信
 ///
+/*
+    TODO: status, help, versionのリファクタ
+    - ドキュメンテーションコメントのために分割したモジュールを再統合
+*/
+
 pub async fn help(ctx: Context<'_>) -> Result<(), Error> {
     // ---------- ファイルの読み込み ----------
     let path = "help.txt";
